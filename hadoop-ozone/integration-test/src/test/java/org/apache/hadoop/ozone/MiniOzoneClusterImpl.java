@@ -493,7 +493,9 @@ public class MiniOzoneClusterImpl implements MiniOzoneCluster {
    */
   @Override
   public void startHddsDatanodes() {
-    hddsDatanodes.forEach(this::startHddsDatanode);
+    hddsDatanodes.forEach((datanode) -> {
+      startHddsDatanode(datanode);
+    });
   }
 
   @Override
