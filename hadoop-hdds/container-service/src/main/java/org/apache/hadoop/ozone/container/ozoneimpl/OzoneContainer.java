@@ -66,6 +66,7 @@ import org.apache.ratis.grpc.GrpcTlsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -303,6 +304,19 @@ public class OzoneContainer {
         .build();
     while (volumeSetIterator.hasNext()) {
       StorageVolume volume = volumeSetIterator.next();
+      // Following snippet was added to ensure HDDS-9658 does not effect
+      // the reproduction of HDDS-9657.
+      // Creating temp directories for all volumes on a DN.
+      if (((HddsVolume) volume).getDeletedContainerDir() == null) {
+        File deleteDirName = new File(
+            ((HddsVolume) volume).getHddsRootDir().getAbsolutePath()
+            + ((HddsVolume) volume).getClusterID()
+            + "/tmp/deleted-containers");
+        ((HddsVolume) volume).setDeletedContainerDir(deleteDirName);
+        if (!deleteDirName.exists()) {
+          deleteDirName.mkdirs();
+        }
+      }
       ContainerReader containerReader = new ContainerReader(volumeSet,
           (HddsVolume) volume, containerSet, config, true);
       Thread thread = threadFactory.newThread(containerReader);

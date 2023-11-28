@@ -72,6 +72,7 @@ import org.apache.hadoop.ozone.container.common.statemachine.DatanodeConfigurati
 import org.apache.hadoop.ozone.container.ec.reconstruction.ECContainerOperationClient;
 import org.apache.hadoop.ozone.container.ec.reconstruction.ECReconstructionCoordinator;
 import org.apache.hadoop.ozone.container.ec.reconstruction.ECReconstructionMetrics;
+import org.apache.hadoop.ozone.container.keyvalue.KeyValueContainerData;
 import org.apache.hadoop.ozone.om.OzoneManager;
 import org.apache.hadoop.ozone.protocol.commands.DeleteBlocksCommand;
 import org.apache.hadoop.security.token.Token;
@@ -87,6 +88,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -110,6 +112,7 @@ import java.util.stream.Stream;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.hadoop.hdds.HddsConfigKeys.HDDS_BLOCK_TOKEN_ENABLED;
 import static org.apache.hadoop.hdds.HddsConfigKeys.HDDS_CONTAINER_TOKEN_ENABLED;
+import static org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.Result.CONTAINER_UNHEALTHY;
 import static org.apache.hadoop.hdds.protocol.proto.HddsProtos.BlockTokenSecretProto.AccessModeProto.READ;
 import static org.apache.hadoop.hdds.protocol.proto.HddsProtos.BlockTokenSecretProto.AccessModeProto.WRITE;
 import static org.apache.hadoop.ozone.container.ContainerTestHelper.newWriteChunkRequestBuilder;
@@ -517,6 +520,101 @@ public class TestContainerCommandsEC {
         byte[] readBuff = new byte[readOnlyByteBuffersArray[0].limit()];
         readOnlyByteBuffersArray[0].get(readBuff, 0, readBuff.length);
         Assert.assertArrayEquals(data, readBuff);
+      } finally {
+        xceiverClientManager.releaseClient(dnClient, false);
+      }
+    }
+  }
+
+  @Test
+  public void testCreateRecoveryContainerAfterDNRestart() throws Exception {
+    // Reproduction of HDDS-9657
+    try (XceiverClientManager xceiverClientManager =
+             new XceiverClientManager(config)) {
+      ECReplicationConfig replicationConfig = new ECReplicationConfig(3, 2);
+      Pipeline newPipeline =
+          scm.getPipelineManager().createPipeline(replicationConfig);
+      scm.getPipelineManager().activatePipeline(newPipeline.getId());
+      final ContainerInfo container = scm.getContainerManager()
+          .allocateContainer(replicationConfig, "test");
+      Token<ContainerTokenIdentifier> cToken = containerTokenGenerator
+          .generateToken(ANY_USER, container.containerID());
+      scm.getContainerManager().getContainerStateManager()
+          .addContainer(container.getProtobuf());
+
+      DatanodeDetails targetDN = newPipeline.getNodes().get(0);
+      XceiverClientSpi dnClient = xceiverClientManager.acquireClient(
+          createSingleNodePipeline(newPipeline, targetDN,
+              2));
+      try {
+        // To create the actual situation, container would have been in closed
+        // state at SCM.
+        scm.getContainerManager().getContainerStateManager()
+            .updateContainerState(container.containerID().getProtobuf(),
+                HddsProtos.LifeCycleEvent.FINALIZE);
+        scm.getContainerManager().getContainerStateManager()
+            .updateContainerState(container.containerID().getProtobuf(),
+                HddsProtos.LifeCycleEvent.CLOSE);
+
+        //Create the recovering container in target DN.
+        String encodedToken = cToken.encodeToUrlString();
+        ContainerProtocolCalls.createRecoveringContainer(dnClient,
+            container.containerID().getProtobuf().getId(),
+            encodedToken, 4);
+
+        // Get containerData for the recovering container after DN restart.
+        KeyValueContainerData containerData = (KeyValueContainerData)
+            cluster.getHddsDatanode(targetDN)
+                .getDatanodeStateMachine()
+                .getContainer()
+                .getContainerSet()
+                .getContainer(container.getContainerID()).getContainerData();
+
+        // Restart the DN.
+        cluster.restartHddsDatanode(targetDN, true);
+
+        // Recovering container is cleaned up after restart.
+        Assert.assertNull(cluster.getHddsDatanode(targetDN)
+            .getDatanodeStateMachine()
+            .getContainer()
+            .getContainerSet()
+            .getContainer(container.getContainerID()));
+        Assert.assertFalse(new File(containerData.getContainerPath()).exists());
+
+        // Writes to recovering container after DN restart
+        // create a container dir in OPEN state even though
+        // it's supposed to be cleaned up.
+        // writeChunk succeeds but with replica index 0.
+        BlockID blockID = ContainerTestHelper
+            .getTestBlockID(container.containerID().getProtobuf().getId());
+        Token<? extends TokenIdentifier> blockToken =
+            blockTokenGenerator.generateToken(ANY_USER, blockID,
+                EnumSet.of(READ, WRITE), Long.MAX_VALUE);
+        byte[] data = "TestData".getBytes(UTF_8);
+        ContainerProtos.ContainerCommandRequestProto writeChunkRequest =
+            newWriteChunkRequestBuilder(newPipeline, blockID,
+                ChunkBuffer.wrap(ByteBuffer.wrap(data)), 0)
+                .setEncodedToken(blockToken.encodeToUrlString())
+                .build();
+        scm.getPipelineManager().activatePipeline(newPipeline.getId());
+        dnClient.sendCommand(writeChunkRequest);
+
+        Assert.assertEquals(ContainerProtos.ContainerDataProto.State.OPEN,
+            cluster.getHddsDatanode(targetDN)
+                .getDatanodeStateMachine()
+                .getContainer()
+                .getContainerSet()
+                .getContainer(container.getContainerID())
+                .getContainerState());
+
+        Assert.assertEquals(0,
+            cluster.getHddsDatanode(targetDN)
+            .getDatanodeStateMachine()
+            .getContainer()
+            .getContainerSet()
+            .getContainer(container.getContainerID()).getContainerData()
+            .getReplicaIndex());
+
       } finally {
         xceiverClientManager.releaseClient(dnClient, false);
       }
