@@ -15,17 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.ozone.s3;
+package org.apache.hadoop.ozone.s3.endpoint.vectors.data;
 
-import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
-import org.glassfish.jersey.server.ResourceConfig;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 
-/**
- * JaxRS resource definition.
- */
-public class GatewayApplication extends ResourceConfig {
-  public GatewayApplication() {
-    register(JacksonJsonProvider.class);
-    packages("org.apache.hadoop.ozone.s3");
+public class PutInputVector {
+  @JsonProperty(value = "data", required = true)
+  private VectorData data;
+  @JsonProperty(value = "key", required = true)
+  private String key;
+  @JsonProperty(value = "metadata")
+  private JsonNode metadata;
+
+  @JsonCreator
+  public PutInputVector(@JsonProperty(value = "data", required = true) VectorData data,
+      @JsonProperty(value = "key", required = true)String key, @JsonProperty(value = "metadata") JsonNode metadata) {
+    this.data = data;
+    this.key = key;
+    this.metadata = metadata;
   }
+
 }

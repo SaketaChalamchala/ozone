@@ -22,13 +22,17 @@ import static org.apache.hadoop.ozone.s3.exception.S3ErrorTable.newError;
 
 import java.io.IOException;
 import java.util.Iterator;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.hadoop.ozone.audit.S3GAction;
 import org.apache.hadoop.ozone.client.OzoneBucket;
 import org.apache.hadoop.ozone.s3.commontypes.BucketMetadata;
 import org.apache.hadoop.ozone.s3.commontypes.DirectoryBucketMetadata;
+import org.apache.hadoop.ozone.s3.endpoint.vectors.request.CreateIndexRequest;
 import org.apache.hadoop.ozone.s3.exception.OS3Exception;
 import org.apache.hadoop.ozone.s3.util.ContinueToken;
 import org.apache.hadoop.ozone.s3.util.S3Consts;
@@ -189,6 +193,29 @@ public class RootEndpoint extends EndpointBase {
       throw newError(INVALID_ARGUMENT, "max-directory-buckets must be >= 0");
     }
     return Math.min(maxDirectoryBuckets, S3Consts.MAX_DIRECTORY_BUCKETS_LIMIT);
+  }
+
+  @POST
+  @Path("/CreateIndex")
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Response createIndex(CreateIndexRequest request) {
+    // Print the request JSON
+    LOG.info("Received CreateIndex request:");
+    LOG.info("Data Type: " + request.getDataType());
+    LOG.info("Dimension: " + request.getDimension());
+    LOG.info("Distance Metric: " + request.getDistanceMetric());
+    LOG.info("Index Name: " + request.getIndexName());
+    LOG.info("Vector Bucket ARN: " + request.getVectorBucketArn());
+    LOG.info("Vector Bucket Name: " + request.getVectorBucketName());
+
+    if (request.getMetadataConfiguration() != null &&
+        request.getMetadataConfiguration().getNonFilterableMetadataKeys() != null) {
+      LOG.info("Non-Filterable Metadata Keys: " +
+          String.join(", ", request.getMetadataConfiguration().getNonFilterableMetadataKeys()));
+    }
+
+    // Return empty response with 200 status code
+    return Response.ok().build();
   }
 
   private String resolveBucketRegion() {

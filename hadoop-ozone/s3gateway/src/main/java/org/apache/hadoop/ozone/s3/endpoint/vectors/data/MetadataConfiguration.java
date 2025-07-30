@@ -15,17 +15,24 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.ozone.s3;
+package org.apache.hadoop.ozone.s3.endpoint.vectors.data;
 
-import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
-import org.glassfish.jersey.server.ResourceConfig;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 
-/**
- * JaxRS resource definition.
- */
-public class GatewayApplication extends ResourceConfig {
-  public GatewayApplication() {
-    register(JacksonJsonProvider.class);
-    packages("org.apache.hadoop.ozone.s3");
+public class MetadataConfiguration {
+
+  @JsonProperty(value = "nonFilterableMetadataKeys", required = true)
+  private List<String> nonFilterableMetadataKeys;
+
+  @JsonCreator
+  public MetadataConfiguration(
+      @JsonProperty(value = "nonFilterableMetadataKeys", required = true) List<String> nonFilterableMetadataKeys) {
+    this.nonFilterableMetadataKeys = nonFilterableMetadataKeys;
+  }
+
+  public List<String> getNonFilterableMetadataKeys() {
+    return nonFilterableMetadataKeys;
   }
 }

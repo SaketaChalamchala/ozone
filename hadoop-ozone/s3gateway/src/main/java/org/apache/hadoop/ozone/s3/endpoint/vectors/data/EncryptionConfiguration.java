@@ -15,17 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.ozone.s3;
+package org.apache.hadoop.ozone.s3.endpoint.vectors.data;
 
-import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
-import org.glassfish.jersey.server.ResourceConfig;
-
-/**
- * JaxRS resource definition.
- */
-public class GatewayApplication extends ResourceConfig {
-  public GatewayApplication() {
-    register(JacksonJsonProvider.class);
-    packages("org.apache.hadoop.ozone.s3");
-  }
+public class EncryptionConfiguration {
 }

@@ -15,17 +15,22 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.ozone.s3;
+package org.apache.hadoop.ozone.s3.endpoint.vectors.data;
 
-import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
-import org.glassfish.jersey.server.ResourceConfig;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- * JaxRS resource definition.
- */
-public class GatewayApplication extends ResourceConfig {
-  public GatewayApplication() {
-    register(JacksonJsonProvider.class);
-    packages("org.apache.hadoop.ozone.s3");
+public class ValidationExceptionField {
+
+  @JsonProperty(value = "message", required = true)
+  private String message;
+  @JsonProperty(value = "path", required = true)
+  private String path;
+
+  @JsonCreator
+  public ValidationExceptionField(@JsonProperty(value = "message", required = true) String message,
+      @JsonProperty(value = "path", required = true) String path) {
+    this.message = message;
+    this.path = path;
   }
 }
