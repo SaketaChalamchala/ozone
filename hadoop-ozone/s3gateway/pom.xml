@@ -78,6 +78,10 @@
       <artifactId>picocli</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.milvus</groupId>
+      <artifactId>milvus-sdk-java</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-api</artifactId>
     </dependency>

@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Top level rest endpoint.
  */
-@Path("/")
+@Path("/" + S3Consts.S3_OBJECTS_PATH)
 public class RootEndpoint extends EndpointBase {
 
   private static final Logger LOG =

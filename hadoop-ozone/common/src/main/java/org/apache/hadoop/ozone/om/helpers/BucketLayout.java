@@ -28,7 +28,7 @@ import org.apache.hadoop.ozone.protocol.proto.OzoneManagerProtocolProtos;
  * present in DB while user can create new buckets as FSO or OBJECT_STORE.
  */
 public enum BucketLayout {
-  FILE_SYSTEM_OPTIMIZED, OBJECT_STORE, LEGACY;
+  FILE_SYSTEM_OPTIMIZED, OBJECT_STORE, LEGACY, VECTOR_BUCKET;
   public static final BucketLayout DEFAULT = LEGACY;
   public static BucketLayout fromProto(
       OzoneManagerProtocolProtos.BucketLayoutProto bucketLayout) {
@@ -42,6 +42,8 @@ public enum BucketLayout {
       return BucketLayout.LEGACY;
     case OBJECT_STORE:
       return BucketLayout.OBJECT_STORE;
+    case VECTOR_BUCKET:
+      return BucketLayout.VECTOR_BUCKET;
     default:
       return DEFAULT;
     }
@@ -55,6 +57,8 @@ public enum BucketLayout {
       return OzoneManagerProtocolProtos.BucketLayoutProto.OBJECT_STORE;
     case LEGACY:
       return OzoneManagerProtocolProtos.BucketLayoutProto.LEGACY;
+    case VECTOR_BUCKET:
+      return OzoneManagerProtocolProtos.BucketLayoutProto.VECTOR_BUCKET;
     default:
       throw new IllegalArgumentException(
           "Error: BucketLayout not found, type=" + this);

@@ -79,6 +79,13 @@ public class Gateway extends GenericCli implements Callable<Void> {
     OzoneConfigurationHolder.setConfiguration(ozoneConfiguration);
     TracingUtil.initTracing("S3gateway", OzoneConfigurationHolder.configuration());
     UserGroupInformation.setConfiguration(OzoneConfigurationHolder.configuration());
+      if (ozoneConfiguration.getBoolean(S3GatewayConfigKeys.OZONE_S3G_VECTOR_ENABLED,
+              S3GatewayConfigKeys.OZONE_S3G_VECTOR_ENABLED_DEFAULT)) {
+          OzoneMilvusClientProviderHolder.initMilvusClient(
+                  ozoneConfiguration.get(S3GatewayConfigKeys.OZONE_S3G_MILVUS_HOST),
+                  ozoneConfiguration.getInt(S3GatewayConfigKeys.OZONE_S3G_MILVUS_PORT, 0));
+      }
+
     loginS3GUser(OzoneConfigurationHolder.configuration());
     setHttpBaseDir(OzoneConfigurationHolder.configuration());
     httpServer = new S3GatewayHttpServer(OzoneConfigurationHolder.configuration(), "s3gateway");

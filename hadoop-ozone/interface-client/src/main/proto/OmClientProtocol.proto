@@ -814,6 +814,7 @@ enum BucketLayoutProto {
     LEGACY = 1;
     FILE_SYSTEM_OPTIMIZED = 2;
     OBJECT_STORE = 3;
+    VECTOR_BUCKET = 4;
 }
 
 /**

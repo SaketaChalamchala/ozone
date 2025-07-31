@@ -38,6 +38,7 @@ import static org.apache.hadoop.ozone.s3.util.S3Consts.DECODED_CONTENT_LENGTH_HE
 import static org.apache.hadoop.ozone.s3.util.S3Consts.MP_PARTS_COUNT;
 import static org.apache.hadoop.ozone.s3.util.S3Consts.RANGE_HEADER;
 import static org.apache.hadoop.ozone.s3.util.S3Consts.RANGE_HEADER_SUPPORTED_UNIT;
+import static org.apache.hadoop.ozone.s3.util.S3Consts.S3_OBJECTS_PATH;
 import static org.apache.hadoop.ozone.s3.util.S3Consts.STORAGE_CLASS_HEADER;
 import static org.apache.hadoop.ozone.s3.util.S3Consts.TAG_COUNT_HEADER;
 import static org.apache.hadoop.ozone.s3.util.S3Consts.TAG_DIRECTIVE_HEADER;
@@ -114,14 +115,13 @@ import org.slf4j.LoggerFactory;
 /**
  * Key level rest endpoints.
  */
-@Path("/{bucket}/{path:.+}")
+@Path("/" + S3_OBJECTS_PATH + "/{bucket}/{path:.+}")
 public class ObjectEndpoint extends ObjectOperationHandler {
 
   private static final String BUCKET = "bucket";
   private static final String PATH = "path";
   // Default Content-Type for objects stored without one, matching S3.
   private static final String DEFAULT_CONTENT_TYPE = "binary/octet-stream";
-
   private static final Logger LOG =
       LoggerFactory.getLogger(ObjectEndpoint.class);
 

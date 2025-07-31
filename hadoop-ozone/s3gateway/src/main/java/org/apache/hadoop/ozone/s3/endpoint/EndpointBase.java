@@ -95,6 +95,7 @@ import org.apache.hadoop.ozone.client.OzoneVolume;
 import org.apache.hadoop.ozone.client.protocol.ClientProtocol;
 import org.apache.hadoop.ozone.om.exceptions.OMException;
 import org.apache.hadoop.ozone.om.exceptions.OMException.ResultCodes;
+import org.apache.hadoop.ozone.om.helpers.BucketLayout;
 import org.apache.hadoop.ozone.om.protocol.S3Auth;
 import org.apache.hadoop.ozone.s3.MultiDigestInputStream;
 import org.apache.hadoop.ozone.s3.RequestIdentifier;
@@ -107,6 +108,7 @@ import org.apache.hadoop.ozone.s3.metrics.S3GatewayMetrics;
 import org.apache.hadoop.ozone.s3.signature.SignatureInfo;
 import org.apache.hadoop.ozone.s3.util.AuditUtils;
 import org.apache.hadoop.ozone.s3.util.S3Utils;
+import org.apache.hadoop.util.Time;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.ratis.util.function.CheckedRunnable;
@@ -241,6 +243,71 @@ public abstract class EndpointBase {
 
   protected OzoneVolume getVolume() throws IOException {
     return client.getObjectStore().getS3Volume();
+  }
+
+  protected String createS3Bucket(String bucketName) throws
+      IOException, OS3Exception {
+    return createS3Bucket(bucketName, null);
+  }
+
+  /**
+   * Create an S3Bucket, and also it creates mapping needed to access via
+   * ozone and S3.
+   * @param bucketName
+   * @return location of the S3Bucket.
+   * @throws IOException
+   */
+  protected String createS3Bucket(String bucketName, BucketLayout bucketLayout) throws
+      IOException, OS3Exception {
+    long startNanos = Time.monotonicNowNanos();
+    try {
+      if (bucketLayout == null) {
+        client.getObjectStore().createS3Bucket(bucketName);
+      } else {
+        client.getObjectStore().createS3Bucket(bucketName, bucketLayout);
+      }
+    } catch (OMException ex) {
+      getMetrics().updateCreateBucketFailureStats(startNanos);
+      if (ex.getResult() == ResultCodes.PERMISSION_DENIED) {
+        throw newError(S3ErrorTable.ACCESS_DENIED, bucketName, ex);
+      } else if (ex.getResult() == ResultCodes.INVALID_TOKEN) {
+        throw newError(S3ErrorTable.ACCESS_DENIED,
+            s3Auth.getAccessID(), ex);
+      } else if (ex.getResult() == ResultCodes.TIMEOUT ||
+          ex.getResult() == ResultCodes.INTERNAL_ERROR) {
+        throw newError(S3ErrorTable.INTERNAL_ERROR, bucketName, ex);
+      } else if (ex.getResult() == ResultCodes.BUCKET_ALREADY_EXISTS) {
+        throw newError(S3ErrorTable.BUCKET_ALREADY_EXISTS, bucketName, ex);
+      } else {
+        throw ex;
+      }
+    }
+    return "/" + bucketName;
+  }
+
+  /**
+   * Deletes an s3 bucket and removes mapping of Ozone volume/bucket.
+   * @param s3BucketName - S3 Bucket Name.
+   * @throws  IOException in case the bucket cannot be deleted.
+   */
+  protected void deleteS3Bucket(String s3BucketName)
+      throws IOException, OS3Exception {
+    try {
+      client.getObjectStore().deleteS3Bucket(s3BucketName);
+    } catch (OMException ex) {
+      if (ex.getResult() == ResultCodes.PERMISSION_DENIED) {
+        throw newError(S3ErrorTable.ACCESS_DENIED,
+            s3BucketName, ex);
+      } else if (ex.getResult() == ResultCodes.INVALID_TOKEN) {
+        throw newError(S3ErrorTable.ACCESS_DENIED,
+            s3Auth.getAccessID(), ex);
+      } else if (ex.getResult() == ResultCodes.TIMEOUT ||
+          ex.getResult() == ResultCodes.INTERNAL_ERROR) {
+        throw newError(S3ErrorTable.INTERNAL_ERROR, s3BucketName, ex);
+      } else {
+        throw ex;
+      }
+    }
   }
 
   /**

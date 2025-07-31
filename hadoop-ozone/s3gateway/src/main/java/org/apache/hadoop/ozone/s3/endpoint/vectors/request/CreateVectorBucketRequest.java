@@ -36,4 +36,8 @@ public class CreateVectorBucketRequest {
     this.encryptionConfiguration = encryptionConfiguration;
     this.vectorBucketName = vectorBucketName;
   }
+
+  public String getVectorBucketName() {
+    return vectorBucketName;
+  }
 }

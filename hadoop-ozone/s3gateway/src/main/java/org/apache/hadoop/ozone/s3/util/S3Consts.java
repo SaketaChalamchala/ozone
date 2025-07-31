@@ -26,6 +26,11 @@ import org.apache.hadoop.hdds.annotation.InterfaceAudience;
 @InterfaceAudience.Private
 public final class S3Consts {
 
+  public static final String S3_VECTORS_PATH = "s3Vectors";
+  public static final Pattern VALID_PATH_PATTERN =
+      Pattern.compile("^(CreateVectorBucket|CreateIndex)$");
+  public static final String S3_OBJECTS_PATH = "s3Objects";
+
   public static final String COPY_SOURCE_HEADER = "x-amz-copy-source";
   public static final String COPY_SOURCE_HEADER_RANGE =
       "x-amz-copy-source-range";

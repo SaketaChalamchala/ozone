@@ -122,13 +122,17 @@ public class ObjectStore {
     proxy.createVolume(volumeName, volumeArgs);
   }
 
+  public void createS3Bucket(String bucketName) throws IOException {
+    createS3Bucket(bucketName, s3BucketLayout);
+  }
+
   /**
    * Creates an S3 bucket inside Ozone manager and creates the mapping needed
    * to access via both S3 and Ozone.
    * @param bucketName - S3 bucket Name.
    * @throws IOException - On failure, throws an exception like Bucket exists.
    */
-  public void createS3Bucket(String bucketName) throws IOException {
+  public void createS3Bucket(String bucketName, BucketLayout bucketLayout) throws IOException {
     OzoneVolume volume = getS3Volume();
     // Backwards compatibility:
     // When OM is pre-finalized for the bucket layout feature, it will block
@@ -136,7 +140,7 @@ public class ObjectStore {
     // fails for this reason, retry with legacy bucket layout.
     try {
       volume.createBucket(bucketName,
-          BucketArgs.newBuilder().setBucketLayout(s3BucketLayout).build());
+          BucketArgs.newBuilder().setBucketLayout(bucketLayout).build());
     } catch (OMException ex) {
       if (ex.getResult() ==
           OMException.ResultCodes.NOT_SUPPORTED_OPERATION_PRIOR_FINALIZATION) {
@@ -144,7 +148,7 @@ public class ObjectStore {
         LOG.info("Failed to create S3 bucket with layout {} since OM is " +
                 "pre-finalized for bucket layouts. Retrying creation with a " +
                 "{} bucket.",
-            s3BucketLayout, fallbackLayout);
+            bucketLayout, fallbackLayout);
         volume.createBucket(bucketName, BucketArgs.newBuilder()
             .setBucketLayout(fallbackLayout).build());
       } else {

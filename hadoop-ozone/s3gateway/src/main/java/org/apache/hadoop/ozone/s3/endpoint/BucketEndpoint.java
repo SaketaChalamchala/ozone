@@ -25,6 +25,7 @@ import static org.apache.hadoop.ozone.s3.S3GatewayConfigKeys.OZONE_S3G_LIST_MAX_
 import static org.apache.hadoop.ozone.s3.S3GatewayConfigKeys.OZONE_S3G_LIST_MAX_KEYS_LIMIT_DEFAULT;
 import static org.apache.hadoop.ozone.s3.exception.S3ErrorTable.newError;
 import static org.apache.hadoop.ozone.s3.util.S3Consts.ENCODING_TYPE;
+import static org.apache.hadoop.ozone.s3.util.S3Consts.S3_OBJECTS_PATH;
 import static org.apache.hadoop.ozone.s3.util.S3Utils.wrapInQuotes;
 
 import java.io.IOException;
@@ -34,6 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HEAD;
@@ -72,11 +74,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Bucket level rest endpoints.
  */
-@Path("/{bucket}")
+@Path("/"+ S3_OBJECTS_PATH +"/{bucket}")
 public class BucketEndpoint extends BucketOperationHandler {
-
   private static final String BUCKET = "bucket";
-
   private static final Logger LOG =
       LoggerFactory.getLogger(BucketEndpoint.class);
 
@@ -326,10 +326,10 @@ public class BucketEndpoint extends BucketOperationHandler {
   /**
    * Implement multi delete.
    * <p>
-   * see: https://docs.aws.amazon
-   * .com/AmazonS3/latest/API/multiobjectdeleteapi.html
+   * see: https://docs.aws.amazon.com/AmazonS3/latest/API/multiobjectdeleteapi.html
    */
   @POST
+  @Consumes(MediaType.APPLICATION_XML)
   @Produces(MediaType.APPLICATION_XML)
   public MultiDeleteResponse multiDelete(
       @PathParam(BUCKET) String bucketName,

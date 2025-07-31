@@ -155,6 +155,7 @@
     <maven.compiler.release>8</maven.compiler.release>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <metainf-services.version>1.11</metainf-services.version>
+    <milvus.version>2.3.3</milvus.version>
     <mockito.version>4.11.0</mockito.version>
     <native.lib.tmp.dir />
     <netty.version>4.1.135.Final</netty.version>
@@ -552,6 +553,11 @@
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-core</artifactId>
         <version>${dropwizard-metrics.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.milvus</groupId>
+        <artifactId>milvus-sdk-java</artifactId>
+        <version>${milvus.version}</version>
       </dependency>
       <dependency>
         <groupId>io.prometheus</groupId>
