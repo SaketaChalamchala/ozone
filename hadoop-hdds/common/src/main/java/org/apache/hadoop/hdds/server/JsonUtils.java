@@ -77,6 +77,10 @@ public final class JsonUtils {
     return WRITER.writeValueAsString(obj);
   }
 
+  public static <T> T fromJson(String json, Class<T> clazz) throws IOException {
+    return MAPPER.readValue(json, clazz);
+  }
+
   public static String toJsonString(Object obj) throws IOException {
     return MAPPER.writeValueAsString(obj);
   }

@@ -266,6 +266,8 @@ public interface ClientProtocol {
                            Boolean versioning)
       throws IOException;
 
+  void updateBucketMetadata(String volume, String bucketName, Map<String, String> metadata) throws IOException;
+
   /**
    * Sets the Storage Class of a Bucket.
    * @param volumeName Name of the Volume

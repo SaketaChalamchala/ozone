@@ -1219,6 +1219,20 @@ public class RpcClient implements ClientProtocol {
   }
 
   @Override
+  public void updateBucketMetadata(
+      String volumeName, String bucketName, Map<String, String> metadata)
+      throws IOException {
+    verifyVolumeName(volumeName);
+    verifyBucketName(bucketName);
+    Preconditions.checkNotNull(metadata);
+    OmBucketArgs.Builder builder = OmBucketArgs.newBuilder();
+    builder.setVolumeName(volumeName)
+        .setBucketName(bucketName)
+        .addMetadata(metadata);
+    ozoneManagerClient.setBucketProperty(builder.build());
+  }
+
+  @Override
   public void setBucketStorageType(
       String volumeName, String bucketName, StorageType storageType)
       throws IOException {

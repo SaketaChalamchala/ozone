@@ -15,22 +15,22 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.ozone.s3.endpoint.vectors.data;
+package org.apache.hadoop.ozone.s3.endpoint.vectors.store;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.io.IOException;
 import java.util.List;
+import org.apache.hadoop.ozone.s3.endpoint.vectors.data.ListOutputVector;
+import org.apache.hadoop.ozone.s3.endpoint.vectors.data.VectorBucket;
+import org.apache.hadoop.ozone.s3.endpoint.vectors.data.VectorData;
 
-public class VectorData {
-  @JsonProperty(value = "float32")
-  private List<Float> float32;
+public interface VectorStore extends AutoCloseable {
 
-  @JsonCreator
-  public VectorData(@JsonProperty(value = "float32") List<Float> float32) {
-    this.float32 = float32;
-  }
+  String createIndex(String bucketName, String indexName, String distanceMetric, int dimension) throws Exception;
 
-  public List<Float> getFloat32() {
-    return float32;
-  }
+  void putVectorData(String bucketName, String indexName, String schemaName, String key, JsonNode metadata,
+      VectorData data) throws IOException;
+
+  List<ListOutputVector> getVectorData(String bucketName, String indexName, VectorData data,
+      int numberOfEntries) throws Exception;
 }

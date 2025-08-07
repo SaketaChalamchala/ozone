@@ -286,6 +286,35 @@ public abstract class EndpointBase {
   }
 
   /**
+   * Create an S3Bucket, and also it creates mapping needed to access via
+   * ozone and S3.
+   * @param bucketName
+   * @return location of the S3Bucket.
+   * @throws IOException
+   */
+  protected String addS3BucketMetadata(String bucketName, String metadataKey, String metadata) throws
+      IOException, OS3Exception {
+    long startNanos = Time.monotonicNowNanos();
+    try {
+      client.getObjectStore().updateS3BucketMetadata(bucketName, Collections.singletonMap(metadataKey, metadata));
+    } catch (OMException ex) {
+      getMetrics().updateCreateBucketFailureStats(startNanos);
+      if (ex.getResult() == ResultCodes.PERMISSION_DENIED) {
+        throw newError(S3ErrorTable.ACCESS_DENIED, bucketName, ex);
+      } else if (ex.getResult() == ResultCodes.INVALID_TOKEN) {
+        throw newError(S3ErrorTable.ACCESS_DENIED,
+            s3Auth.getAccessID(), ex);
+      } else if (ex.getResult() == ResultCodes.TIMEOUT ||
+          ex.getResult() == ResultCodes.INTERNAL_ERROR) {
+        throw newError(S3ErrorTable.INTERNAL_ERROR, bucketName, ex);
+      } else {
+        throw ex;
+      }
+    }
+    return "/" + bucketName;
+  }
+
+  /**
    * Deletes an s3 bucket and removes mapping of Ozone volume/bucket.
    * @param s3BucketName - S3 Bucket Name.
    * @throws  IOException in case the bucket cannot be deleted.

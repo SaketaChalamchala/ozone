@@ -37,4 +37,15 @@ public class PutInputVector {
     this.metadata = metadata;
   }
 
+  public VectorData getData() {
+    return data;
+  }
+
+  public String getKey() {
+    return key;
+  }
+
+  public JsonNode getMetadata() {
+    return metadata;
+  }
 }

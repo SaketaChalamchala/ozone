@@ -329,6 +329,18 @@ public class OzoneVolume extends WithMetadata {
   }
 
   /**
+   * Updates the metadata associated with a specific bucket within the volume.
+   *
+   * @param bucketName the name of the bucket for which metadata needs to be updated
+   * @param metadata a map containing metadata key-value pairs to be updated;
+   *                 if a key already exists, its value will be overwritten
+   * @throws IOException if an I/O error occurs while updating the bucket metadata
+   */
+  public void updateBucketMetadata(String bucketName, Map<String, String> metadata) throws IOException {
+    proxy.updateBucketMetadata(name, bucketName, metadata);
+  }
+
+  /**
    * Get the Bucket from this Volume.
    * @param bucketName Name of the Bucket
    * @return OzoneBucket

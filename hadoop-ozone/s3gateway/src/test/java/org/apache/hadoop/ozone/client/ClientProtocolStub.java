@@ -181,6 +181,11 @@ public class ClientProtocolStub implements ClientProtocol {
   }
 
   @Override
+  public void updateBucketMetadata(String volume, String bucketName, Map<String, String> metadata) throws IOException {
+
+  }
+
+  @Override
   public void setBucketStorageType(String volumeName, String bucketName,
                                    StorageType storageType) throws IOException {
 

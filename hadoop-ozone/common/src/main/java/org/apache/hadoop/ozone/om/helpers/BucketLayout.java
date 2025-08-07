@@ -74,7 +74,7 @@ public enum BucketLayout {
   }
 
   public boolean isObjectStore(boolean enableFileSystemPaths) {
-    if (this.equals(OBJECT_STORE)) {
+    if (this.equals(OBJECT_STORE) || this.equals(VECTOR_BUCKET)) {
       return true;
     } else {
       // If bucket layout is Legacy and FileSystemPaths
@@ -88,6 +88,7 @@ public enum BucketLayout {
 
   public boolean shouldNormalizePaths(boolean enableFileSystemPaths) {
     switch (this) {
+    case VECTOR_BUCKET:
     case OBJECT_STORE:
       return false;
     case FILE_SYSTEM_OPTIMIZED:

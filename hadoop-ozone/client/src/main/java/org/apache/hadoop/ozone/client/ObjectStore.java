@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.crypto.key.KeyProvider;
@@ -155,6 +156,17 @@ public class ObjectStore {
         throw ex;
       }
     }
+  }
+
+  /**
+   * Creates an S3 bucket inside Ozone manager and creates the mapping needed
+   * to access via both S3 and Ozone.
+   * @param bucketName - S3 bucket Name.
+   * @throws IOException - On failure, throws an exception like Bucket exists.
+   */
+  public void updateS3BucketMetadata(String bucketName, Map<String, String> metadata) throws IOException {
+    OzoneVolume volume = getS3Volume();
+    volume.updateBucketMetadata(bucketName, metadata);
   }
 
   public OzoneBucket getS3Bucket(String bucketName) throws IOException {

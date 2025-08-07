@@ -55,11 +55,23 @@
     <module>s3gateway</module>
     <module>tools</module>
     <module>vapor</module>
+    <module>vespa-shaded</module>
   </modules>
 
   <properties>
     <docker.image>apache/ozone:${project.version}</docker.image>
   </properties>
+
+  <dependencyManagement>
+
+    <dependencies>
+      <dependency>
+        <groupId>org.apache.ozone</groupId>
+        <artifactId>vespa-shaded</artifactId>
+        <version>${ozone.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <build>
     <plugins>

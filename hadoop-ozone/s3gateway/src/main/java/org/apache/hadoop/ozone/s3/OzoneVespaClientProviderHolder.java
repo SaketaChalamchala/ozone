@@ -17,9 +17,11 @@
  */
 package org.apache.hadoop.ozone.s3;
 
-import io.milvus.client.MilvusServiceClient;
-import io.milvus.param.ConnectParam;
+import java.net.URISyntaxException;
 import javax.enterprise.inject.Produces;
+import org.apache.hadoop.hdds.conf.ConfigurationSource;
+import org.apache.hadoop.ozone.s3.endpoint.vectors.store.VectorStore;
+import org.apache.hadoop.ozone.s3.endpoint.vectors.store.VespaVectorStore;
 
 /**
  * Ozone Milvus Client Provider.
@@ -27,26 +29,20 @@ import javax.enterprise.inject.Produces;
  * As the OzoneConfiguration is created by the CLI application here we inject
  * it via a singleton instance to the Jax-RS/CDI instances.
  */
-public class OzoneMilvusClientProviderHolder {
+public class OzoneVespaClientProviderHolder {
 
-  private static MilvusServiceClient milvusClient = null;
+  private static VectorStore vectorStore = null;
 
   @Produces
-  public MilvusServiceClient milvusClient() {
-    return milvusClient;
+  public VectorStore vectorStore() {
+    return vectorStore;
   }
 
-  public static void initMilvusClient(
-      String host, int port) {
-    milvusClient = new MilvusServiceClient(
-        ConnectParam.newBuilder()
-            .withHost(host)
-            .withPort(port)
-            .build()
-    );
+  public static void initVespaClient(String host, int port, ConfigurationSource conf) throws URISyntaxException {
+    vectorStore = new VespaVectorStore(host, port, conf);
   }
 
-  public void close() {
-    milvusClient.close();
+  public static void close() throws Exception {
+    vectorStore.close();
   }
 }

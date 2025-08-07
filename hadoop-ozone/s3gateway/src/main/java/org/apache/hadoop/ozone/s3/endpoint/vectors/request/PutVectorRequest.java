@@ -40,5 +40,21 @@ public class PutVectorRequest {
     this.indexName = indexName;
     this.indexArn = indexArn;
     this.vectors = vectors;
-      }
+  }
+
+  public VectorData getIndexArn() {
+    return indexArn;
+  }
+
+  public String getIndexName() {
+    return indexName;
+  }
+
+  public String getVectorBucketName() {
+    return vectorBucketName;
+  }
+
+  public List<PutInputVector> getVectors() {
+    return vectors;
+  }
 }

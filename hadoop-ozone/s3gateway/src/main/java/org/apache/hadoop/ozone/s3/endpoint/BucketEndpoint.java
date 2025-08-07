@@ -74,7 +74,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Bucket level rest endpoints.
  */
-@Path("/"+ S3_OBJECTS_PATH +"/{bucket}")
+@Path("/" + S3_OBJECTS_PATH + "/{bucket}")
 public class BucketEndpoint extends BucketOperationHandler {
   private static final String BUCKET = "bucket";
   private static final Logger LOG =

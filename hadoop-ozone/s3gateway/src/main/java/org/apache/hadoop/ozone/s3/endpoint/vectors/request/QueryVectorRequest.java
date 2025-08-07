@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.hadoop.ozone.s3.endpoint.vectors.data.VectorData;
 
-public class QueryVectoryRequest {
+public class QueryVectorRequest {
   @JsonProperty(value = "indexArn", required = true)
   private String indexArn;
   @JsonProperty(value = "vectorBucketName")
@@ -38,7 +38,7 @@ public class QueryVectoryRequest {
   private boolean returnMetadata;
 
   @JsonCreator
-  public QueryVectoryRequest(@JsonProperty(value = "indexArn", required = true) String indexArn,
+  public QueryVectorRequest(@JsonProperty(value = "indexArn", required = true) String indexArn,
       @JsonProperty(value = "vectorBucketName") String vectorBucketName,
       @JsonProperty(value = "indexName", required = true) String indexName,
       @JsonProperty(value = "queryVector", required = true) VectorData queryVector,
@@ -52,5 +52,33 @@ public class QueryVectoryRequest {
     this.returnMetadata = returnMetadata;
     this.topK = topK;
     this.vectorBucketName = vectorBucketName;
+  }
+
+  public String getIndexArn() {
+    return indexArn;
+  }
+
+  public String getIndexName() {
+    return indexName;
+  }
+
+  public VectorData getQueryVector() {
+    return queryVector;
+  }
+
+  public boolean isReturnDistance() {
+    return returnDistance;
+  }
+
+  public boolean isReturnMetadata() {
+    return returnMetadata;
+  }
+
+  public int getTopK() {
+    return topK;
+  }
+
+  public String getVectorBucketName() {
+    return vectorBucketName;
   }
 }

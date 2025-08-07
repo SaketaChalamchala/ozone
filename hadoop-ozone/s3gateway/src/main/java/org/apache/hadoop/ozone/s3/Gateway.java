@@ -79,12 +79,12 @@ public class Gateway extends GenericCli implements Callable<Void> {
     OzoneConfigurationHolder.setConfiguration(ozoneConfiguration);
     TracingUtil.initTracing("S3gateway", OzoneConfigurationHolder.configuration());
     UserGroupInformation.setConfiguration(OzoneConfigurationHolder.configuration());
-      if (ozoneConfiguration.getBoolean(S3GatewayConfigKeys.OZONE_S3G_VECTOR_ENABLED,
-              S3GatewayConfigKeys.OZONE_S3G_VECTOR_ENABLED_DEFAULT)) {
-          OzoneMilvusClientProviderHolder.initMilvusClient(
-                  ozoneConfiguration.get(S3GatewayConfigKeys.OZONE_S3G_MILVUS_HOST),
-                  ozoneConfiguration.getInt(S3GatewayConfigKeys.OZONE_S3G_MILVUS_PORT, 0));
-      }
+  if (ozoneConfiguration.getBoolean(S3GatewayConfigKeys.OZONE_S3G_VECTOR_ENABLED,
+          S3GatewayConfigKeys.OZONE_S3G_VECTOR_ENABLED_DEFAULT)) {
+      OzoneVespaClientProviderHolder.initVespaClient(
+              ozoneConfiguration.get(S3GatewayConfigKeys.OZONE_S3G_VECTOR_HOST),
+              ozoneConfiguration.getInt(S3GatewayConfigKeys.OZONE_S3G_VECTOR_PORT, 0), ozoneConfiguration);
+  }
 
     loginS3GUser(OzoneConfigurationHolder.configuration());
     setHttpBaseDir(OzoneConfigurationHolder.configuration());
@@ -121,6 +121,7 @@ public class Gateway extends GenericCli implements Callable<Void> {
     LOG.info("Stopping Ozone S3 gateway");
     IOUtils.closeQuietly(httpServer, contentServer);
     jvmPauseMonitor.stop();
+    OzoneVespaClientProviderHolder.close();
     S3GatewayMetrics.unRegister();
     if (nettyMetrics != null) {
       nettyMetrics.unregister();

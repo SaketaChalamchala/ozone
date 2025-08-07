@@ -210,6 +210,10 @@
           <groupId>org.slf4j</groupId>
           <artifactId>*</artifactId>
         </exclusion>
+        <exclusion>
+          <artifactId>lz4-java</artifactId>
+          <groupId>org.lz4</groupId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -352,11 +356,12 @@
     <dependency>
       <groupId>org.apache.ozone</groupId>
       <artifactId>hdds-server-scm</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.ozone</groupId>
-      <artifactId>hdds-server-scm</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.lz4</groupId>
+          <artifactId>lz4-java</artifactId>
+        </exclusion>
+      </exclusions>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
@@ -439,6 +444,12 @@
     <dependency>
       <groupId>org.apache.ozone</groupId>
       <artifactId>ozone-manager</artifactId>
+      <exclusions>
+        <exclusion>
+          <artifactId>HdrHistogram</artifactId>
+          <groupId>org.hdrhistogram</groupId>
+        </exclusion>
+      </exclusions>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
@@ -455,6 +466,12 @@
     <dependency>
       <groupId>org.apache.ozone</groupId>
       <artifactId>ozone-recon</artifactId>
+      <exclusions>
+        <exclusion>
+          <artifactId>jcl-over-slf4j</artifactId>
+          <groupId>org.slf4j</groupId>
+        </exclusion>
+      </exclusions>
       <scope>test</scope>
     </dependency>
     <dependency>
