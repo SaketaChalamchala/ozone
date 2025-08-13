@@ -86,6 +86,7 @@ import org.apache.hadoop.ozone.om.helpers.OmVolumeArgs;
 import org.apache.hadoop.ozone.om.helpers.OpenKeySession;
 import org.apache.hadoop.ozone.om.helpers.OzoneFileStatus;
 import org.apache.hadoop.ozone.om.helpers.OzoneFileStatusLight;
+import org.apache.hadoop.ozone.om.helpers.OzoneVectorIndex;
 import org.apache.hadoop.ozone.om.helpers.S3SecretValue;
 import org.apache.hadoop.ozone.om.helpers.S3VolumeContext;
 import org.apache.hadoop.ozone.om.helpers.ServiceInfo;
@@ -579,6 +580,18 @@ public final class OzoneManagerProtocolClientSideTranslatorPB
 
     handleError(submitRequest(omRequest));
 
+  }
+
+  @Override
+  public void createVectorIndex(String volume, String bucket, String indexName, OzoneVectorIndex vectorIndex)
+      throws IOException {
+    OzoneManagerProtocolProtos.CreateVectorIndexRequest vectorIndexRequest = OzoneManagerProtocolProtos.
+        CreateVectorIndexRequest.newBuilder().setVectorIndex(OzoneVectorIndex.getProtobuf(vectorIndex))
+        .setVolume(volume).setBucket(bucket).setIndexName(indexName).build();
+    OMRequest omRequest = createOMRequest(Type.CreateVectorIndex)
+        .setCreateVectorIndex(vectorIndexRequest)
+        .build();
+    handleError(submitRequest(omRequest));
   }
 
   /**

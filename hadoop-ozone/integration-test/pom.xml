@@ -207,12 +207,12 @@
           <artifactId>log4j</artifactId>
         </exclusion>
         <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>*</artifactId>
+          <groupId>org.lz4</groupId>
+          <artifactId>lz4-java</artifactId>
         </exclusion>
         <exclusion>
-          <artifactId>lz4-java</artifactId>
-          <groupId>org.lz4</groupId>
+          <groupId>org.slf4j</groupId>
+          <artifactId>*</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -356,14 +356,19 @@
     <dependency>
       <groupId>org.apache.ozone</groupId>
       <artifactId>hdds-server-scm</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ozone</groupId>
+      <artifactId>hdds-server-scm</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
       <exclusions>
         <exclusion>
           <groupId>org.lz4</groupId>
           <artifactId>lz4-java</artifactId>
         </exclusion>
       </exclusions>
-      <type>test-jar</type>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.ozone</groupId>
@@ -444,14 +449,14 @@
     <dependency>
       <groupId>org.apache.ozone</groupId>
       <artifactId>ozone-manager</artifactId>
-      <exclusions>
-        <exclusion>
-          <artifactId>HdrHistogram</artifactId>
-          <groupId>org.hdrhistogram</groupId>
-        </exclusion>
-      </exclusions>
       <type>test-jar</type>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.hdrhistogram</groupId>
+          <artifactId>HdrHistogram</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.ozone</groupId>
@@ -466,13 +471,13 @@
     <dependency>
       <groupId>org.apache.ozone</groupId>
       <artifactId>ozone-recon</artifactId>
+      <scope>test</scope>
       <exclusions>
         <exclusion>
-          <artifactId>jcl-over-slf4j</artifactId>
           <groupId>org.slf4j</groupId>
+          <artifactId>jcl-over-slf4j</artifactId>
         </exclusion>
       </exclusions>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.ozone</groupId>
@@ -498,6 +503,11 @@
     <dependency>
       <groupId>org.apache.ozone</groupId>
       <artifactId>rocksdb-checkpoint-differ</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ozone</groupId>
+      <artifactId>vespa-shaded</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

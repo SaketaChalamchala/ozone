@@ -78,10 +78,6 @@
       <artifactId>picocli</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.milvus</groupId>
-      <artifactId>milvus-sdk-java</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-api</artifactId>
     </dependency>
@@ -176,10 +172,6 @@
       <!-- <scope>test</scope> but transitive via ozone-client -->
     </dependency>
     <dependency>
-      <groupId>org.apache.ratis</groupId>
-      <artifactId>ratis-common</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.apache.ozone</groupId>
       <artifactId>vespa-shaded</artifactId>
       <scope>compile</scope>
@@ -189,14 +181,18 @@
           <artifactId>*</artifactId>
         </exclusion>
         <exclusion>
-          <groupId>org.eclipse.jetty</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
           <groupId>jakarta.servlet</groupId>
           <artifactId>jakarta.servlet-api</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>org.eclipse.jetty</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ratis</groupId>
+      <artifactId>ratis-common</artifactId>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>

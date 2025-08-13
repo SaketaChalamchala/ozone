@@ -39,6 +39,7 @@ import org.apache.hadoop.ozone.om.exceptions.OMException;
 import org.apache.hadoop.ozone.om.helpers.BucketLayout;
 import org.apache.hadoop.ozone.om.helpers.DeleteTenantState;
 import org.apache.hadoop.ozone.om.helpers.OmVolumeArgs;
+import org.apache.hadoop.ozone.om.helpers.OzoneVectorIndex;
 import org.apache.hadoop.ozone.om.helpers.S3SecretValue;
 import org.apache.hadoop.ozone.om.helpers.S3VolumeContext;
 import org.apache.hadoop.ozone.om.helpers.TenantStateList;
@@ -164,9 +165,9 @@ public class ObjectStore {
    * @param bucketName - S3 bucket Name.
    * @throws IOException - On failure, throws an exception like Bucket exists.
    */
-  public void updateS3BucketMetadata(String bucketName, Map<String, String> metadata) throws IOException {
+  public void createVectorIndex(String bucketName, String indexName, OzoneVectorIndex vectorIndex) throws IOException {
     OzoneVolume volume = getS3Volume();
-    volume.updateBucketMetadata(bucketName, metadata);
+    volume.createVectorIndex(bucketName, indexName, vectorIndex);
   }
 
   public OzoneBucket getS3Bucket(String bucketName) throws IOException {

@@ -65,6 +65,9 @@ import org.apache.hadoop.crypto.CryptoOutputStream;
 import org.apache.hadoop.crypto.key.KeyProvider;
 import org.apache.hadoop.fs.FileEncryptionInfo;
 import org.apache.hadoop.fs.Syncable;
+import org.apache.hadoop.ozone.om.helpers.OzoneFSUtils;
+import org.apache.hadoop.ozone.om.helpers.OzoneVectorIndex;
+import org.apache.hadoop.util.Time;
 import org.apache.hadoop.hdds.client.DefaultReplicationConfig;
 import org.apache.hadoop.hdds.client.ECReplicationConfig;
 import org.apache.hadoop.hdds.client.RatisReplicationConfig;
@@ -1219,17 +1222,9 @@ public class RpcClient implements ClientProtocol {
   }
 
   @Override
-  public void updateBucketMetadata(
-      String volumeName, String bucketName, Map<String, String> metadata)
+  public void createVectorIndex(String volume, String bucketName, String indexName, OzoneVectorIndex vectorIndex)
       throws IOException {
-    verifyVolumeName(volumeName);
-    verifyBucketName(bucketName);
-    Preconditions.checkNotNull(metadata);
-    OmBucketArgs.Builder builder = OmBucketArgs.newBuilder();
-    builder.setVolumeName(volumeName)
-        .setBucketName(bucketName)
-        .addMetadata(metadata);
-    ozoneManagerClient.setBucketProperty(builder.build());
+    ozoneManagerClient.createVectorIndex(volume, bucketName, indexName, vectorIndex);
   }
 
   @Override

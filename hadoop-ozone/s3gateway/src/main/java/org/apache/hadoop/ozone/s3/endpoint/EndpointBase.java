@@ -96,6 +96,7 @@ import org.apache.hadoop.ozone.client.protocol.ClientProtocol;
 import org.apache.hadoop.ozone.om.exceptions.OMException;
 import org.apache.hadoop.ozone.om.exceptions.OMException.ResultCodes;
 import org.apache.hadoop.ozone.om.helpers.BucketLayout;
+import org.apache.hadoop.ozone.om.helpers.OzoneVectorIndex;
 import org.apache.hadoop.ozone.om.protocol.S3Auth;
 import org.apache.hadoop.ozone.s3.MultiDigestInputStream;
 import org.apache.hadoop.ozone.s3.RequestIdentifier;
@@ -292,11 +293,11 @@ public abstract class EndpointBase {
    * @return location of the S3Bucket.
    * @throws IOException
    */
-  protected String addS3BucketMetadata(String bucketName, String metadataKey, String metadata) throws
+  protected String createVectorIndex(String bucketName, String indexName, OzoneVectorIndex vectorIndex) throws
       IOException, OS3Exception {
     long startNanos = Time.monotonicNowNanos();
     try {
-      client.getObjectStore().updateS3BucketMetadata(bucketName, Collections.singletonMap(metadataKey, metadata));
+      client.getObjectStore().createVectorIndex(bucketName, indexName, vectorIndex);
     } catch (OMException ex) {
       getMetrics().updateCreateBucketFailureStats(startNanos);
       if (ex.getResult() == ResultCodes.PERMISSION_DENIED) {

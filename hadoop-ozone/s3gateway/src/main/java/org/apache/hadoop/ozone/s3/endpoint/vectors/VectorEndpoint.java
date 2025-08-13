@@ -3,7 +3,6 @@ package org.apache.hadoop.ozone.s3.endpoint.vectors;
 import static org.apache.hadoop.ozone.s3.exception.S3ErrorTable.newError;
 import static org.apache.hadoop.ozone.s3.util.S3Consts.S3_VECTORS_PATH;
 
-import io.milvus.client.MilvusServiceClient;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -17,12 +16,11 @@ import org.apache.hadoop.ozone.audit.S3GAction;
 import org.apache.hadoop.ozone.client.OzoneBucket;
 import org.apache.hadoop.ozone.om.exceptions.OMException;
 import org.apache.hadoop.ozone.om.helpers.BucketLayout;
+import org.apache.hadoop.ozone.om.helpers.OzoneVectorIndex;
 import org.apache.hadoop.ozone.s3.endpoint.EndpointBase;
-import org.apache.hadoop.ozone.s3.endpoint.ObjectEndpoint;
 import org.apache.hadoop.ozone.s3.endpoint.vectors.data.ListOutputVector;
 import org.apache.hadoop.ozone.s3.endpoint.vectors.data.PutInputVector;
 import org.apache.hadoop.ozone.s3.endpoint.vectors.data.QueryOutputVector;
-import org.apache.hadoop.ozone.s3.endpoint.vectors.data.VectorData;
 import org.apache.hadoop.ozone.s3.endpoint.vectors.request.CreateIndexRequest;
 import org.apache.hadoop.ozone.s3.endpoint.vectors.request.CreateVectorBucketRequest;
 import org.apache.hadoop.ozone.s3.endpoint.vectors.request.PutVectorRequest;
@@ -31,7 +29,7 @@ import org.apache.hadoop.ozone.s3.endpoint.vectors.store.VectorStore;
 import org.apache.hadoop.ozone.s3.exception.OS3Exception;
 import org.apache.hadoop.ozone.s3.exception.S3ErrorTable;
 import org.apache.hadoop.ozone.s3.util.S3Consts;
-import org.apache.hadoop.ozone.s3.util.VespaUtil;
+import org.apache.hadoop.ozone.s3.util.VectorUtil;
 import org.apache.hadoop.util.Time;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
@@ -47,10 +45,6 @@ public class VectorEndpoint extends EndpointBase {
 
     public static boolean isMatch(String path) {
         return S3Consts.VALID_PATH_PATTERN.matcher(path).matches();
-    }
-
-    private static String getVectorBucketSchemaMetadata(String vectorBucketName, String indexName) {
-        return "ozoneVectorBucket/" + vectorBucketName + "/" + indexName;
     }
 
     @POST
@@ -97,11 +91,10 @@ public class VectorEndpoint extends EndpointBase {
             LOG.info("Non-Filterable Metadata Keys: " +
                 String.join(", ", request.getMetadataConfiguration().getNonFilterableMetadataKeys()));
         }
-        String indexSchemaName = vectorStore.createIndex(request.getVectorBucketName(), request.getIndexName(),
-            request.getDistanceMetric(), request.getDimension());
-        addS3BucketMetadata(request.getVectorBucketName(),
-            "ozoneVectorBucket/" + request.getVectorBucketName() + "/" + request.getIndexName(),
-            indexSchemaName);
+
+        createVectorIndex(request.getVectorBucketName(), request.getIndexName(),
+            new OzoneVectorIndex.Builder().setDataType(request.getDataType()).setDimension(request.getDimension())
+                .setDistanceMetric(request.getDistanceMetric()).build());
         // Return empty response with 200 status code
         return Response.ok().build();
     }
@@ -110,8 +103,8 @@ public class VectorEndpoint extends EndpointBase {
     @Path("/PutVectors")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response putVectors(PutVectorRequest request) throws Exception {
-        String metadataKey = getVectorBucketSchemaMetadata(request.getVectorBucketName(), request.getIndexName());
-        OzoneBucket bucket = getBucket(request.getVectorBucketName());
+        String metadataKey = VectorUtil.getVectorBucketSchemaMetadata(request.getIndexName());
+        OzoneBucket bucket = getVolume().getBucket(request.getVectorBucketName());
         String indexSchemaName = bucket.getMetadata().get(metadataKey);
         for (PutInputVector putInputVector : request.getVectors()) {
             vectorStore.putVectorData(request.getVectorBucketName(), request.getIndexName(), indexSchemaName,
@@ -124,9 +117,11 @@ public class VectorEndpoint extends EndpointBase {
     @Path("/QueryVectors")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response queryVectors(QueryVectorRequest request) throws Exception {
-        List<ListOutputVector> outputVectors = vectorStore.getVectorData(request.getVectorBucketName(), request.getIndexName(),
-            request.getQueryVector(),
-            request.getTopK());
+        String metadataKey = VectorUtil.getVectorBucketSchemaMetadata(request.getIndexName());
+        OzoneBucket bucket = getVolume().getBucket(request.getVectorBucketName());
+        String indexSchemaName = bucket.getMetadata().get(metadataKey);
+        List<QueryOutputVector> outputVectors = vectorStore.getVectorData(request.getVectorBucketName(),
+            request.getIndexName(), indexSchemaName, request.getQueryVector(), request.getTopK());
         return Response.ok(Collections.singletonMap("vectors", outputVectors), MediaType.APPLICATION_JSON_TYPE).build();
     }
 

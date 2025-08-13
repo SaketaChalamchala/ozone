@@ -706,6 +706,13 @@ public final class OzoneConfigKeys {
       "hdds.scmclient.max.retry.timeout";
   public static final String HDDS_SCM_CLIENT_FAILOVER_MAX_RETRY =
       "hdds.scmclient.failover.max.retry";
+  public static final String OZONE_S3G_VECTOR_ENABLED = "ozone.s3g.vector.enabled";
+  public static final boolean OZONE_S3G_VECTOR_ENABLED_DEFAULT = false;
+  public static final String OZONE_S3G_VECTOR_HOST = "ozone.s3g.vector.host";
+  public static final String OZONE_S3G_VECTOR_PORT = "ozone.s3g.vector.port";
+  public static final String OZONE_S3G_SCHEMA_VECTOR_HOST = "ozone.s3g.vector.schema.host";
+  public static final String OZONE_S3G_SCHEMA_VECTOR_PORT = "ozone.s3g.vector.schema.port";
+  public static final String OZONE_VECTOR_HOST_MAP = "ozone.s3.vector.host.map";
 
   public static final String OZONE_XCEIVER_CLIENT_METRICS_PERCENTILES_INTERVALS_SECONDS_KEY =
       "ozone.xceiver.client.metrics.percentiles.intervals.seconds";

@@ -42,15 +42,40 @@ public final class Proto2Codec<M extends MessageLite> implements Codec<M> {
   /**
    * @return the {@link Codec} for the given class.
    */
+  public static <T extends MessageLite> Codec<T> getFromClass(Class<T> clazz) {
+    final Codec<?> codec = CODECS.computeIfAbsent(clazz,
+        key -> new Proto2Codec<>(clazz, getParser(clazz)));
+    return (Codec<T>) codec;
+  }
+
+
+
+  /**
+   * @return the {@link Codec} for the given class.
+   */
   public static <T extends MessageLite> Codec<T> get(T t) {
     final Codec<?> codec = CODECS.computeIfAbsent(t.getClass(),
         key -> new Proto2Codec<>(t));
     return (Codec<T>) codec;
   }
 
+  private static <T extends MessageLite> Parser<T> getParser(Class<T> clazz) {
+    final String name = "PARSER";
+    try {
+      return (Parser<T>) clazz.getField(name).get(null);
+    } catch (Exception e) {
+      throw new IllegalStateException(
+          "Failed to get " + name + " field from " + clazz, e);
+    }
+  }
+
   private Proto2Codec(M m) {
-    this.clazz = (Class<M>) m.getClass();
-    this.parser = (Parser<M>) m.getParserForType();
+    this((Class<M>) m.getClass(), (Parser<M>) m.getParserForType());
+  }
+
+  private Proto2Codec(Class<M> clazz, Parser<M> parser) {
+    this.clazz = clazz;
+    this.parser = parser;
   }
 
   @Override

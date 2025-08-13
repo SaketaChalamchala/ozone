@@ -52,6 +52,7 @@ import org.apache.hadoop.ozone.om.helpers.OmMultipartPartInfo;
 import org.apache.hadoop.ozone.om.helpers.OmMultipartPartKey;
 import org.apache.hadoop.ozone.om.helpers.OmMultipartUpload;
 import org.apache.hadoop.ozone.om.helpers.OmPrefixInfo;
+import org.apache.hadoop.ozone.om.helpers.OzoneVectorIndex;
 import org.apache.hadoop.ozone.om.helpers.OmVolumeArgs;
 import org.apache.hadoop.ozone.om.helpers.RepeatedOmKeyInfo;
 import org.apache.hadoop.ozone.om.helpers.SnapshotInfo;
@@ -500,6 +501,8 @@ public interface OMMetadataManager extends DBStoreHAManager, AutoCloseable {
    * @return meta table reference.
    */
   Table<String, String> getMetaTable();
+
+  Table<String, OzoneVectorIndex> getVectorIndexTable();
 
   /**
    * Returns number of rows in a table.  This should not be used for very

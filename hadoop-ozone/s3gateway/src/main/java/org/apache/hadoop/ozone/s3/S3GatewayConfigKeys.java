@@ -56,10 +56,6 @@ public final class S3GatewayConfigKeys {
   public static final int OZONE_S3G_WEBADMIN_HTTP_BIND_PORT_DEFAULT = 19878;
   public static final int OZONE_S3G_WEBADMIN_HTTPS_BIND_PORT_DEFAULT = 19879;
 
-  public static final String OZONE_S3G_VECTOR_ENABLED = "ozone.s3g.vector.enabled";
-  public static final boolean OZONE_S3G_VECTOR_ENABLED_DEFAULT = false;
-  public static final String OZONE_S3G_VECTOR_HOST = "ozone.s3g.vector.host";
-  public static final String OZONE_S3G_VECTOR_PORT = "ozone.s3g.vector.port";
   public static final String OZONE_S3G_DOMAIN_NAME = "ozone.s3g.domain.name";
 
   public static final String OZONE_S3G_HTTP_AUTH_CONFIG_PREFIX =

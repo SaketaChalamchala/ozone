@@ -38,6 +38,7 @@ import org.apache.hadoop.ozone.om.helpers.OmMultipartKeyInfo;
 import org.apache.hadoop.ozone.om.helpers.OmMultipartPartInfo;
 import org.apache.hadoop.ozone.om.helpers.OmMultipartPartKey;
 import org.apache.hadoop.ozone.om.helpers.OmPrefixInfo;
+import org.apache.hadoop.ozone.om.helpers.OzoneVectorIndex;
 import org.apache.hadoop.ozone.om.helpers.OmVolumeArgs;
 import org.apache.hadoop.ozone.om.helpers.RepeatedOmKeyInfo;
 import org.apache.hadoop.ozone.om.helpers.S3SecretValue;
@@ -325,6 +326,12 @@ public final class OMDBDefinition extends DBDefinition.WithMap {
           StringCodec.get(),
           CompactionLogEntry.getCodec());
 
+  public static final String VECTOR_INDEX_TABLE = "vectorIndexTable";
+  public static final DBColumnFamilyDefinition<String, OzoneVectorIndex> VECTOR_INDEX_TABLE_DEF =
+      new DBColumnFamilyDefinition<>(VECTOR_INDEX_TABLE,
+          StringCodec.get(),
+          OzoneVectorIndex.getCodec());
+
   //---------------------------------------------------------------------------
   private static final Map<String, DBColumnFamilyDefinition<?, ?>> COLUMN_FAMILIES
       = DBColumnFamilyDefinition.newUnmodifiableMap(
@@ -350,7 +357,8 @@ public final class OMDBDefinition extends DBDefinition.WithMap {
           TENANT_STATE_TABLE_DEF,
           TRANSACTION_INFO_TABLE_DEF,
           USER_TABLE_DEF,
-          VOLUME_TABLE_DEF);
+          VOLUME_TABLE_DEF,
+          VECTOR_INDEX_TABLE_DEF);
 
   private static final OMDBDefinition INSTANCE = new OMDBDefinition();
 

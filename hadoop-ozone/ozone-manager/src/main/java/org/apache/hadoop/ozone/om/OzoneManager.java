@@ -125,6 +125,7 @@ import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -315,6 +316,8 @@ import org.apache.hadoop.ozone.protocol.proto.OzoneManagerProtocolProtos.TenantS
 import org.apache.hadoop.ozone.protocolPB.OMAdminProtocolServerSideImpl;
 import org.apache.hadoop.ozone.protocolPB.OMInterServiceProtocolServerSideImpl;
 import org.apache.hadoop.ozone.protocolPB.OzoneManagerProtocolServerSideTranslatorPB;
+import org.apache.hadoop.ozone.s3.endpoint.vectors.store.VectorStore;
+import org.apache.hadoop.ozone.s3.endpoint.vectors.store.VespaVectorStore;
 import org.apache.hadoop.ozone.security.OMCertificateClient;
 import org.apache.hadoop.ozone.security.OzoneDelegationTokenSecretManager;
 import org.apache.hadoop.ozone.security.OzoneTokenIdentifier;
@@ -415,6 +418,7 @@ public final class OzoneManager extends ServiceRuntimeInfoImpl
   private PrefixManagerImpl prefixManager;
   private final UpgradeFinalizer<OzoneManager> upgradeFinalizer;
   private ExecutorService edekCacheLoader = null;
+  private VectorStore vectorStore;
 
   /**
    * OM super user / admin list.
@@ -1001,6 +1005,15 @@ public final class OzoneManager extends ServiceRuntimeInfoImpl
           }
         }
         throw e;
+      }
+    }
+
+    if (configuration.getBoolean(OzoneConfigKeys.OZONE_S3G_VECTOR_ENABLED,
+        OzoneConfigKeys.OZONE_S3G_VECTOR_ENABLED_DEFAULT)) {
+      try {
+        vectorStore = new VespaVectorStore(configuration);
+      } catch (URISyntaxException e) {
+        throw new IOException(e);
       }
     }
 
@@ -2492,11 +2505,18 @@ public final class OzoneManager extends ServiceRuntimeInfoImpl
       if (edekCacheLoader != null) {
         edekCacheLoader.shutdown();
       }
+      if (vectorStore != null) {
+          vectorStore.close();
+      }
       return true;
     } catch (Exception e) {
       LOG.error("OzoneManager stop failed.", e);
     }
     return false;
+  }
+
+  public VectorStore getVectorStore() {
+    return vectorStore;
   }
 
   public void shutDown(String message) {

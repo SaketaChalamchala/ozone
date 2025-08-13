@@ -35,6 +35,7 @@ import org.apache.hadoop.hdds.tracing.TracingUtil;
 import org.apache.hadoop.hdds.utils.HddsServerUtil;
 import org.apache.hadoop.hdds.utils.IOUtils;
 import org.apache.hadoop.hdds.utils.NettyMetrics;
+import org.apache.hadoop.ozone.OzoneConfigKeys;
 import org.apache.hadoop.ozone.OzoneSecurityUtil;
 import org.apache.hadoop.ozone.s3.metrics.S3GatewayMetrics;
 import org.apache.hadoop.ozone.util.OzoneNetUtils;
@@ -79,12 +80,10 @@ public class Gateway extends GenericCli implements Callable<Void> {
     OzoneConfigurationHolder.setConfiguration(ozoneConfiguration);
     TracingUtil.initTracing("S3gateway", OzoneConfigurationHolder.configuration());
     UserGroupInformation.setConfiguration(OzoneConfigurationHolder.configuration());
-  if (ozoneConfiguration.getBoolean(S3GatewayConfigKeys.OZONE_S3G_VECTOR_ENABLED,
-          S3GatewayConfigKeys.OZONE_S3G_VECTOR_ENABLED_DEFAULT)) {
-      OzoneVespaClientProviderHolder.initVespaClient(
-              ozoneConfiguration.get(S3GatewayConfigKeys.OZONE_S3G_VECTOR_HOST),
-              ozoneConfiguration.getInt(S3GatewayConfigKeys.OZONE_S3G_VECTOR_PORT, 0), ozoneConfiguration);
-  }
+    if (ozoneConfiguration.getBoolean(OzoneConfigKeys.OZONE_S3G_VECTOR_ENABLED,
+            OzoneConfigKeys.OZONE_S3G_VECTOR_ENABLED_DEFAULT)) {
+        OzoneVespaClientProviderHolder.initVectorStore(ozoneConfiguration);
+    }
 
     loginS3GUser(OzoneConfigurationHolder.configuration());
     setHttpBaseDir(OzoneConfigurationHolder.configuration());

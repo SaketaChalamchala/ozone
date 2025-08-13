@@ -28,13 +28,13 @@ public class PutVectorRequest {
   @JsonProperty(value = "indexName")
   private String indexName;
   @JsonProperty(value = "indexArn")
-  private VectorData indexArn;
+  private String indexArn;
   @JsonProperty(value = "vectors", required = true)
   private List<PutInputVector> vectors;
 
   public PutVectorRequest(@JsonProperty(value = "vectorBucketName") String vectorBucketName,
       @JsonProperty(value = "indexName") String indexName,
-      @JsonProperty(value = "indexArn") VectorData indexArn,
+      @JsonProperty(value = "indexArn") String indexArn,
       @JsonProperty(value = "vectors", required = true) List<PutInputVector> vectors) {
     this.vectorBucketName = vectorBucketName;
     this.indexName = indexName;
@@ -42,7 +42,7 @@ public class PutVectorRequest {
     this.vectors = vectors;
   }
 
-  public VectorData getIndexArn() {
+  public String getIndexArn() {
     return indexArn;
   }
 

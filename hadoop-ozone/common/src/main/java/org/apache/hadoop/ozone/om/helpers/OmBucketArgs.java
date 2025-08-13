@@ -336,6 +336,9 @@ public final class OmBucketArgs extends WithMetadata implements Auditable {
     BucketArgs.Builder builder = BucketArgs.newBuilder();
     builder.setVolumeName(volumeName)
         .setBucketName(bucketName);
+    if (getMetadata() != null) {
+      builder.addAllMetadata(KeyValueUtil.toProtobuf(getMetadata()));
+    }
     if (isVersionEnabled != null) {
       builder.setIsVersionEnabled(isVersionEnabled);
     }

@@ -57,6 +57,7 @@ import org.apache.hadoop.ozone.om.helpers.OmMultipartUploadCompleteInfo;
 import org.apache.hadoop.ozone.om.helpers.OmVolumeArgs;
 import org.apache.hadoop.ozone.om.helpers.OzoneFileStatus;
 import org.apache.hadoop.ozone.om.helpers.OzoneFileStatusLight;
+import org.apache.hadoop.ozone.om.helpers.OzoneVectorIndex;
 import org.apache.hadoop.ozone.om.helpers.S3SecretValue;
 import org.apache.hadoop.ozone.om.helpers.S3VolumeContext;
 import org.apache.hadoop.ozone.om.helpers.TenantStateList;
@@ -266,7 +267,8 @@ public interface ClientProtocol {
                            Boolean versioning)
       throws IOException;
 
-  void updateBucketMetadata(String volume, String bucketName, Map<String, String> metadata) throws IOException;
+  void createVectorIndex(String volume, String bucketName, String indexName, OzoneVectorIndex vectorIndex)
+      throws IOException;
 
   /**
    * Sets the Storage Class of a Bucket.

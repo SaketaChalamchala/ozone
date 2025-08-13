@@ -90,6 +90,7 @@ import org.apache.hadoop.ozone.om.request.upgrade.OMCancelPrepareRequest;
 import org.apache.hadoop.ozone.om.request.upgrade.OMFinalizeUpgradeRequest;
 import org.apache.hadoop.ozone.om.request.upgrade.OMPrepareRequest;
 import org.apache.hadoop.ozone.om.request.util.OMEchoRPCWriteRequest;
+import org.apache.hadoop.ozone.om.request.vector.OMCreateVectorIndexRequest;
 import org.apache.hadoop.ozone.om.request.volume.OMQuotaRepairRequest;
 import org.apache.hadoop.ozone.om.request.volume.OMVolumeCreateRequest;
 import org.apache.hadoop.ozone.om.request.volume.OMVolumeDeleteRequest;
@@ -348,6 +349,8 @@ public final class OzoneManagerRatisUtils {
       return new S3PutBucketTaggingRequest(omRequest);
     case DeleteBucketTagging:
       return new S3DeleteBucketTaggingRequest(omRequest);
+    case CreateVectorIndex:
+      return new OMCreateVectorIndexRequest(omRequest);
     default:
       throw new OMException("Unrecognized write command type request "
           + cmdType, OMException.ResultCodes.INVALID_REQUEST);

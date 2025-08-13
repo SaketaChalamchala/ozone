@@ -33,6 +33,7 @@ import org.apache.hadoop.hdds.conf.ConfigurationSource;
 import org.apache.hadoop.hdds.scm.client.HddsClientUtils;
 import org.apache.hadoop.ozone.OzoneAcl;
 import org.apache.hadoop.ozone.client.protocol.ClientProtocol;
+import org.apache.hadoop.ozone.om.helpers.OzoneVectorIndex;
 import org.apache.hadoop.ozone.om.helpers.WithMetadata;
 import org.apache.hadoop.ozone.security.acl.OzoneObj;
 import org.apache.hadoop.ozone.security.acl.OzoneObjInfo;
@@ -332,12 +333,13 @@ public class OzoneVolume extends WithMetadata {
    * Updates the metadata associated with a specific bucket within the volume.
    *
    * @param bucketName the name of the bucket for which metadata needs to be updated
-   * @param metadata a map containing metadata key-value pairs to be updated;
-   *                 if a key already exists, its value will be overwritten
+   * @param indexName the name of the vector index created.
+   * @param vectorIndex specs for the index to be created.
    * @throws IOException if an I/O error occurs while updating the bucket metadata
    */
-  public void updateBucketMetadata(String bucketName, Map<String, String> metadata) throws IOException {
-    proxy.updateBucketMetadata(name, bucketName, metadata);
+  public void createVectorIndex(String bucketName, String indexName,
+      OzoneVectorIndex vectorIndex) throws IOException {
+    proxy.createVectorIndex(name, bucketName, indexName, vectorIndex);
   }
 
   /**

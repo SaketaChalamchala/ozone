@@ -38,8 +38,8 @@ public class OzoneVespaClientProviderHolder {
     return vectorStore;
   }
 
-  public static void initVespaClient(String host, int port, ConfigurationSource conf) throws URISyntaxException {
-    vectorStore = new VespaVectorStore(host, port, conf);
+  public static void initVectorStore(ConfigurationSource conf) throws URISyntaxException {
+    vectorStore = new VespaVectorStore(conf);
   }
 
   public static void close() throws Exception {

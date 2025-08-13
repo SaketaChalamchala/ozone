@@ -238,16 +238,6 @@
         <scope>import</scope>
       </dependency>
       <dependency>
-        <groupId>com.yahoo.vespa</groupId>
-        <artifactId>vespaclient-java</artifactId>
-        <version>${vespa.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.yahoo.vespa</groupId>
-        <artifactId>vespa-feed-client</artifactId>
-        <version>${vespa.version}</version>
-      </dependency>
-      <dependency>
         <groupId>io.grpc</groupId>
         <artifactId>grpc-bom</artifactId>
         <version>${io.grpc.version}</version>
@@ -508,6 +498,16 @@
         <groupId>com.sun.jersey</groupId>
         <artifactId>jersey-core</artifactId>
         <version>${jersey.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.yahoo.vespa</groupId>
+        <artifactId>vespa-feed-client</artifactId>
+        <version>${vespa.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.yahoo.vespa</groupId>
+        <artifactId>vespaclient-java</artifactId>
+        <version>${vespa.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>

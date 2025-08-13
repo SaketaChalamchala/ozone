@@ -112,6 +112,7 @@ import org.apache.hadoop.ozone.om.helpers.OmMultipartPartInfo;
 import org.apache.hadoop.ozone.om.helpers.OmMultipartPartKey;
 import org.apache.hadoop.ozone.om.helpers.OmMultipartUpload;
 import org.apache.hadoop.ozone.om.helpers.OmPrefixInfo;
+import org.apache.hadoop.ozone.om.helpers.OzoneVectorIndex;
 import org.apache.hadoop.ozone.om.helpers.OmVolumeArgs;
 import org.apache.hadoop.ozone.om.helpers.OpenKeySession;
 import org.apache.hadoop.ozone.om.helpers.OzoneFSUtils;
@@ -184,6 +185,7 @@ public class OmMetadataManagerImpl implements OMMetadataManager,
   private Table<String, SnapshotInfo> snapshotInfoTable;
   private Table<String, String> snapshotRenamedTable;
   private Table<String, CompactionLogEntry> compactionLogTable;
+  private Table<String, OzoneVectorIndex> vectorIndexTable;
 
   private OzoneManager ozoneManager;
 
@@ -532,6 +534,8 @@ public class OmMetadataManagerImpl implements OMMetadataManager,
     // TODO: [SNAPSHOT] Initialize table lock for snapshotRenamedTable.
 
     compactionLogTable = initializer.get(OMDBDefinition.COMPACTION_LOG_TABLE_DEF);
+
+    vectorIndexTable = initializer.get(OMDBDefinition.VECTOR_INDEX_TABLE_DEF);
   }
 
   /**
@@ -1702,6 +1706,11 @@ public class OmMetadataManagerImpl implements OMMetadataManager,
   @Override
   public Table<String, String> getMetaTable() {
     return metaTable;
+  }
+
+  @Override
+  public Table<String, OzoneVectorIndex> getVectorIndexTable() {
+    return vectorIndexTable;
   }
 
   @Override
