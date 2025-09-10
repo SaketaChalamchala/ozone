@@ -1,0 +1,124 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#
+# Byteman rules for testing KeyDeletingService snapshot validation scenario
+# 
+# Test Scenario:
+# 1. Run and pause KeyDeletingService before it submits purge key requests
+# 2. Create a snapshot while KeyDeletingService is paused
+# 3. Resume KeyDeletingService and finish submitting purge key requests
+# 4. Check that OMKeyPurgeRequest throws OMException INVALID_REQUEST with "Snapshot validation failed"
+#
+
+# Step 1: Pause KeyDeletingService before submitting purge requests
+RULE Pause service before purge request submission
+CLASS org.apache.hadoop.ozone.om.service.KeyDeletingService
+METHOD submitPurgeRequest
+AT ENTRY
+IF true
+DO
+  traceln("BYTEMAN: KeyDeletingService.submitPurgeRequest called");
+  link("snapshotCreated", false);
+  link("purgeRequestSubmitted", false);
+  link("testResult", "UNKNOWN");
+  link("testStatus", "INIT");
+  traceln("BYTEMAN: STEP 1 - Pausing KeyDeletingService before submitPurgeRequest");
+  # Wait for snapshot creation
+  traceln("BYTEMAN: Waiting for snapshot creation...");
+  while (!linked("snapshotCreated"))
+  DO
+    Thread.sleep(100);
+  ENDDO
+
+  traceln("BYTEMAN: STEP 3 - Snapshot created, resuming KeyDeletingService");
+  link("purgeRequestSubmitted", true);
+ENDRULE
+
+# Step 2: Detect snapshot creation
+RULE Detect snapshot creation
+CLASS org.apache.hadoop.ozone.om.SnapshotChainManager
+METHOD addSnapshot
+AT EXIT
+IF true
+DO
+  traceln("BYTEMAN: STEP 2 - Snapshot added to chain");
+  link("snapshotCreated", true);
+ENDRULE
+
+# Step 4: Verify the expected exception in OMKeyPurgeRequest
+RULE Verify snapshot validation failure
+CLASS org.apache.hadoop.ozone.om.request.key.OMKeyPurgeRequest
+METHOD validateAndUpdateCache
+AT EXIT
+IF true
+DO
+  traceln("BYTEMAN: STEP 4 - OMKeyPurgeRequest.validateAndUpdateCache completed");
+
+  # Check if the response indicates failure
+  if ($! != null && $!.getClass().getName().contains("OMKeyPurgeResponse"))
+  DO
+    if ($!.getOMResponse() != null && !$!.getOMResponse().getSuccess())
+    DO
+      traceln("BYTEMAN: SUCCESS - Purge request failed as expected");
+      link("testResult", "SUCCESS");
+      if ($!.getOMResponse().getStatus() != null)
+      DO
+        traceln("BYTEMAN: Error status: " + $!.getOMResponse().getStatus()
+        + ", Error message: " + $!.getOMResponse().getMessage());
+      ENDDO
+    ENDDO
+    else
+    DO
+      traceln("BYTEMAN: WARNING - Purge request succeeded unexpectedly");
+      link("testResult", "FAILURE");
+    ENDDO
+    link("testStatus", "TEST_COMPLETED");
+  ENDDO
+  else
+  DO
+    traceln("BYTEMAN: ERROR - Unexpected response type or null response");
+    link("testResult", "ERROR");
+    link("testStatus", "TEST_ERROR");
+  ENDDO
+ENDRULE
+
+# Log submitPurgeKeysRequest for debugging
+RULE Log purge keys request
+CLASS org.apache.hadoop.ozone.om.service.KeyDeletingService
+METHOD submitPurgeKeysRequest
+AT ENTRY
+IF true
+DO
+  traceln("BYTEMAN: KeyDeletingService.submitPurgeKeysRequest() called");
+ENDRULE
+
+# Rule to expose test status via file system for external querying
+RULE Write test status to file
+CLASS org.apache.hadoop.ozone.om.service.KeyDeletingService
+METHOD submitPurgeKeysRequest
+AT EXIT
+IF true
+DO
+  String statusContent = "KDS_Purge_AOS_Snapshot_Create_Race:testStatus=" + linked("testStatus") + ",testResult=" + linked("testResult") + "\n";
+  
+  try {
+    java.io.FileWriter writer = new java.io.FileWriter("/tmp/byteman_test_status.txt");
+    writer.write(statusContent);
+    writer.close();
+  } catch (Exception e) {
+    traceln("BYTEMAN: Error writing status file: " + e.getMessage());
+  }
+ENDRULE

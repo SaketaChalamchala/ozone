@@ -75,3 +75,31 @@ class BytemanLibrary:
 
         for rule_file in rule_files:
             self.remove_byteman_rule(component_name, rule_file)
+
+### Testing result verification automation - in progress
+    def get_byteman_result(self, component_name, test_name):
+        """Get Byteman test result from file system"""
+        try:
+            # Read the status file that Byteman writes
+            result = subprocess.run(
+                ["docker", "exec", component_name, "cat", "/tmp/byteman_test_status.txt"],
+              capture_output=True, text=True
+            )
+            
+            if result.returncode != 0:
+                logger.info(f"No Byteman status file found for {component_name}")
+                return "testStatus=UNKNOWN,testResult=UNKNOWN"
+            
+            # Parse the status file content
+            status = {}
+            for line in result.stdout.strip().split('\n'):
+                if ':' in line:
+                    key, value = line.split(':', 1)
+                    status[key] = value
+            
+            logger.info(f"Byteman status for {component_name}: {status}")
+            return status.get(test_name, "UNKNOWN")
+            
+        except Exception as e:
+            logger.error(f"Error reading Byteman status for {component_name}: {e}")
+            return "testStatus=ERROR,testResult=ERROR"
