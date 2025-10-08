@@ -1,76 +1,41 @@
-# Step 0.1: Control AbstractKeyDeletingService.shouldRun() to return false until signaled
-RULE Control shouldRun method to return false
-CLASS org.apache.hadoop.ozone.om.service.AbstractKeyDeletingService
-METHOD shouldRun
-AT ENTRY
-IF !flagged("keyDeleted")
-DO
-    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
-    "STEP 0.1 - AbstractKeyDeletingService.shouldRun() forced to return false");
-    return false
-ENDRULE
-
-# Step 0.2: Allow shouldRun to work normally after signal
-RULE Enable shouldRun functionality
-CLASS org.apache.hadoop.ozone.om.service.AbstractKeyDeletingService
-METHOD shouldRun
-AT ENTRY
-IF flagged("keyDeleted")
-DO
-    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
-    "STEP 0.2 - AbstractKeyDeletingService.shouldRun() allowed to proceed normally");
-ENDRULE
-
-# Step 1: Signal when key is deleted to allow KDS to run
-RULE Signal key deleted
-CLASS org.apache.hadoop.ozone.om.response.key.OMKeyDeleteResponseWithFSO
-METHOD addToDBBatch
-AT EXIT
-IF true
-DO
-    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
-    "STEP 1 - Detected key delete");
-    flag("keyDeleted");
-ENDRULE
-
-# Step 2: Pause KeyDeletingService before submitting purge requests
+# Step 1: Pause submitting Key Purge requests and Step 3: Resume submitting Key Purge requests after snapshot creation
 RULE Pause service before purge request submission
-CLASS org.apache.hadoop.ozone.om.service.KeyDeletingService
-METHOD submitPurgeRequest
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
 AT ENTRY
-IF true
+IF $1.getCmdType().name() == "PurgeKeys"
 DO
     System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
-    "STEP 2 - Pausing KeyDeletingService before submitPurgeRequest");
+    "STEP 1 - Detected key delete. Pausing PurgeKeys requests until snapshot is created");
     # Wait for snapshot creation with timeout to simulate race condition
     waitFor("snapshotCreated");
     System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
-    "STEP 3 - Snapshot created, resuming KeyDeletingService.submitPurgeRequest");
+    "STEP 3 - Snapshot created, resuming submitting PurgeKeys request");
 ENDRULE
 
-# Step 3: Detect snapshot creation when committed and flushed from double buffer
+# Step 2: Detect snapshot creation has completed
 RULE Detect snapshot creation after commit and flush
-CLASS org.apache.hadoop.ozone.om.request.snapshot.OMSnapshotCreateRequest
-METHOD validateAndUpdateCache
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
 AT EXIT
-IF true
+IF $1.getCmdType().name() == "CreateSnapshot"
 DO
     System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
-    "STEP 3 - Snapshot creation detected");
+    "STEP 2 - Snapshot creation detected");
     # Wait for snapshot creation with timeout to simulate race condition
     signalWake("snapshotCreated");
 ENDRULE
 
-# Step 4: Log completion of OMKeyPurgeRequest processing
-RULE Log OMKeyPurgeRequest completion
-CLASS org.apache.hadoop.ozone.om.request.key.OMKeyPurgeRequest
-METHOD validateAndUpdateCache
+# Step 4: Log completion of PurgeKeys request processing
+RULE Log PurgeKeys request completion
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
 AT EXIT
-IF true
+IF $1.getCmdType().name() == "PurgeKeys"
 DO
     System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
-    "STEP 4 - OMKeyPurgeRequest.validateAndUpdateCache completed");
+    "STEP 4 - PurgeKeys request is completed");
     # Check if the response indicates failure
     System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
-    "STEP 4.1 - OMKeyPurgeRequest Success = " + $!.getOMResponse().getSuccess());
+    "STEP 4.1 - PurgeKeys request Success = " + $!.getSuccess());
 ENDRULE
