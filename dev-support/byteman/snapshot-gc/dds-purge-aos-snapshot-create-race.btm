@@ -1,0 +1,42 @@
+# Step 1: Pause submitting Directory Purge requests and
+# Step 3: Resume submitting Directory Purge requests after snapshot creation
+RULE Pause service before purge request submission
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT ENTRY
+IF $1.getCmdType().name() == "PurgeDirectories"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 1 - Detected directory delete. Pausing PurgeDirectories requests until snapshot is created");
+    # Wait for snapshot creation with timeout to simulate race condition
+    waitFor("snapshotCreated");
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 3 - Snapshot created, resuming submitting PurgeDirectories request");
+ENDRULE
+
+# Step 2: Detect snapshot creation has completed
+RULE Detect snapshot creation after commit and flush
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "CreateSnapshot"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 2 - Snapshot creation detected");
+    # Wait for snapshot creation with timeout to simulate race condition
+    signalWake("snapshotCreated");
+ENDRULE
+
+# Step 4: Log completion of PurgeKeys request processing
+RULE Log PurgeDirectories request completion
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "PurgeDirectories"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 4 - PurgeDirectories request is completed");
+    # Check if the response indicates failure
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 4.1 - PurgeDirectories request Success = " + $!.getSuccess());
+ENDRULE
