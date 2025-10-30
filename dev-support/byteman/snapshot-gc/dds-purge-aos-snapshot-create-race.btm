@@ -1,5 +1,5 @@
-# Step 1: Pause submitting Directory Purge requests and
-# Step 3: Resume submitting Directory Purge requests after snapshot creation
+# Step 1: Pause submitting PurgeDirectories requests and
+# Step 3: Resume submitting PurgeDirectories requests after snapshot creation
 RULE Pause service before purge request submission
 CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
 METHOD submitRequest
@@ -15,7 +15,7 @@ DO
 ENDRULE
 
 # Step 2: Detect snapshot creation has completed
-RULE Detect snapshot creation after commit and flush
+RULE Detect snapshot creation
 CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
 METHOD submitRequest
 AT EXIT
@@ -27,7 +27,7 @@ DO
     signalWake("snapshotCreated");
 ENDRULE
 
-# Step 4: Log completion of PurgeKeys request processing
+# Step 4: Log completion of PurgeDirectories request processing
 RULE Log PurgeDirectories request completion
 CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
 METHOD submitRequest
