@@ -1,0 +1,66 @@
+# Step 1 : Pause initializing snapshot chain after reading the snapshot chain
+# and before acquiring lock on previous snapshots
+RULE Delay between chain lookup and lock acquisition
+CLASS org.apache.hadoop.ozone.om.snapshot.filter.ReclaimableFilter
+METHOD initializePreviousSnapshotsFromChain
+AT INVOKE org.apache.hadoop.ozone.om.snapshot.MultiSnapshotLocks.acquireLock
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 1 - Pausing initializing previous snapshot chain after reading it and before acquiring lock on previous " +
+     "snapshots until the snapshot chain is modified. count=" + incrementCounter("pauseCount"));
+    waitFor("snapshotChainModified");
+    waitFor("snapshotFlushedToDB");
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 3 - Snapshot modification is complete, resuming initializePreviousSnapshotsFromChain in reclaimable filter");
+ENDRULE
+
+# Step 2: Detect snapshot chain modification while a key is being reclaimed
+RULE Detect snapshot chain modification
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerStateMachine
+METHOD runCommand
+AT EXIT
+IF $1.getCmdType().name() == "CreateSnapshot" || $1.getCmdType().name() == "DeleteSnapshot"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 2 - " + $1.getCmdType().name() + " detected");
+    link("snapshotTermIdx", $2);
+    signalWake("snapshotChainModified");
+ENDRULE
+
+# Step 2.1: Detect snapshot change has been flushed to DB
+RULE Detect snapshot flush to DB
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerDoubleBuffer
+METHOD flushBatch
+AT INVOKE java.util.function.Consumer.accept
+BIND flushedTxn : org.apache.ratis.server.protocol.TermIndex = $@[1];
+snapshotTxn : org.apache.ratis.server.protocol.TermIndex = linked("snapshotTermIdx")
+IF snapshotTxn != null && flushedTxn.compareTo(snapshotTxn) >= 0
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 2.1 - Snapshot changes flushed to DB");
+    signalWake("snapshotFlushedToDB");
+    unlink("snapshotTermIdx");
+ENDRULE
+
+# Step 4-1: Log ReclaimableFilter apply result
+RULE Log ReclaimableFilter apply result
+CLASS org.apache.hadoop.ozone.om.snapshot.filter.ReclaimableFilter
+METHOD apply
+AT EXIT
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 4-1 - Reclaimable filter apply is = " + $!);
+ENDRULE
+
+# Step 4-2: Log ReclaimableFilter exception apply result
+RULE Log ReclaimableFilter apply exception result
+CLASS org.apache.hadoop.ozone.om.snapshot.filter.ReclaimableFilter
+METHOD apply
+AT EXCEPTION EXIT
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 4-2 - Reclaimable filter apply threw an exception: " + $^.getMessage());
+ENDRULE
