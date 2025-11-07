@@ -1,0 +1,94 @@
+# Step 1: Pause processing deleted keys/directories for snapshots
+# Step 3: Resume after snapshot deletion processing starts
+RULE Delay after snapshot lock acquisition
+CLASS org.apache.hadoop.ozone.om.snapshot.filter.ReclaimableFilter
+METHOD initializePreviousSnapshotsFromChain
+AFTER INVOKE org.apache.hadoop.ozone.om.snapshot.MultiSnapshotLocks.acquireLock
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 1 - Pausing initializing previous snapshot chain after acquiring lock on the snapshots " +
+    "until the snapshot is deleted");
+    waitFor("sdsStarted");
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 3 - Snapshot deletion is being processed, resuming processing key/directory deletes for snapshot");
+ENDRULE
+
+# Step 2: Detect snapshot deletion
+RULE Detect snapshot deletion
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "DeleteSnapshot"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 2 - Snapshot deletion detected");
+    flag("snapshotDeleted");
+ENDRULE
+
+# Step 3: Detect snapshot deleting service has started
+RULE Detect snapshot deletion process has started
+CLASS org.apache.hadoop.ozone.om.service.SnapshotDeletingService$SnapshotDeletingTask
+METHOD call
+AT INVOKE org.apache.hadoop.ozone.om.snapshot.MultiSnapshotLocks.acquireLock
+IF flagged("snapshotDeleted")
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 3 - Deleted snapshot is being processed. Before acquiring lock on the deleted snapshot");
+    signalWake("sdsStarted");
+ENDRULE
+
+# Step 4-1: Log completion of PurgeKeys request
+RULE Log PurgeKeys request completion
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "PurgeKeys"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 4-1 - PurgeKeys request is submitted. Success = " + $!.getSuccess());
+ENDRULE
+
+# Step 4-2: Log completion of PurgeDirectories request
+RULE Log PurgeDirectories request completion
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "PurgeDirectories"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 4-2 - PurgeDirectories request is submitted. Success = " + $!.getSuccess());
+ENDRULE
+
+# Step 5: Detect snapshot deletion service proceeding
+RULE Detect snapshot deletion process continues
+CLASS org.apache.hadoop.ozone.om.service.SnapshotDeletingService$SnapshotDeletingTask
+METHOD call
+AFTER INVOKE org.apache.hadoop.ozone.om.snapshot.MultiSnapshotLocks.acquireLock
+IF flagged("snapshotDeleted")
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 5 - Deleted snapshot is being processed. After acquiring lock on the deleted snapshot");
+ENDRULE
+
+# Step 6: Log completion of SnapshotPurge request has completed
+RULE Log SnapshotPurge request completion
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "SnapshotPurge"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 6 - SnapshotPurge request is submitted. Success = " + $!.getSuccess());
+ENDRULE
+
+# Should not happen: Log completion of MoveTableKey request
+RULE Log MoveTableKeys request completion
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "SnapshotMoveTableKeys"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "SHOULD NOT HAPPEN - MoveTableKeys request is submitted. Success = " + $!.getSuccess());
+ENDRULE
