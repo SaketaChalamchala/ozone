@@ -316,6 +316,7 @@ import org.apache.hadoop.ozone.protocol.proto.OzoneManagerProtocolProtos.TenantS
 import org.apache.hadoop.ozone.protocolPB.OMAdminProtocolServerSideImpl;
 import org.apache.hadoop.ozone.protocolPB.OMInterServiceProtocolServerSideImpl;
 import org.apache.hadoop.ozone.protocolPB.OzoneManagerProtocolServerSideTranslatorPB;
+import org.apache.hadoop.ozone.s3.endpoint.vectors.store.OpensearchVectorStore;
 import org.apache.hadoop.ozone.s3.endpoint.vectors.store.VectorStore;
 import org.apache.hadoop.ozone.s3.endpoint.vectors.store.VespaVectorStore;
 import org.apache.hadoop.ozone.security.OMCertificateClient;
@@ -1007,11 +1008,20 @@ public final class OzoneManager extends ServiceRuntimeInfoImpl
         throw e;
       }
     }
-
     if (configuration.getBoolean(OzoneConfigKeys.OZONE_S3G_VECTOR_ENABLED,
-        OzoneConfigKeys.OZONE_S3G_VECTOR_ENABLED_DEFAULT)) {
+            OzoneConfigKeys.OZONE_S3G_VECTOR_ENABLED_DEFAULT)) {
       try {
-        vectorStore = new VespaVectorStore(configuration);
+        switch (OzoneConsts.VectorDB.valueOf(
+            configuration.get(OzoneConfigKeys.OZONE_S3G_VECTOR_DB, OzoneConfigKeys.OZONE_S3G_VECTOR_DB_DEFAULT))) {
+        case VESPA:
+          vectorStore = new VespaVectorStore(configuration);
+          break;
+        case OPENSEARCH:
+          vectorStore = new OpensearchVectorStore(configuration);
+          break;
+        default:
+          throw new IllegalArgumentException("Unsupported vector DB");
+        }
       } catch (URISyntaxException e) {
         throw new IOException(e);
       }
@@ -2506,7 +2516,7 @@ public final class OzoneManager extends ServiceRuntimeInfoImpl
         edekCacheLoader.shutdown();
       }
       if (vectorStore != null) {
-          vectorStore.close();
+        vectorStore.close();
       }
       return true;
     } catch (Exception e) {

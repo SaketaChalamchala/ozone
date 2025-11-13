@@ -82,7 +82,7 @@ public class Gateway extends GenericCli implements Callable<Void> {
     UserGroupInformation.setConfiguration(OzoneConfigurationHolder.configuration());
     if (ozoneConfiguration.getBoolean(OzoneConfigKeys.OZONE_S3G_VECTOR_ENABLED,
             OzoneConfigKeys.OZONE_S3G_VECTOR_ENABLED_DEFAULT)) {
-        OzoneVespaClientProviderHolder.initVectorStore(ozoneConfiguration);
+      OzoneVectorClientProviderHolder.initVectorStore(ozoneConfiguration);
     }
 
     loginS3GUser(OzoneConfigurationHolder.configuration());
@@ -120,7 +120,7 @@ public class Gateway extends GenericCli implements Callable<Void> {
     LOG.info("Stopping Ozone S3 gateway");
     IOUtils.closeQuietly(httpServer, contentServer);
     jvmPauseMonitor.stop();
-    OzoneVespaClientProviderHolder.close();
+    OzoneVectorClientProviderHolder.close();
     S3GatewayMetrics.unRegister();
     if (nettyMetrics != null) {
       nettyMetrics.unregister();

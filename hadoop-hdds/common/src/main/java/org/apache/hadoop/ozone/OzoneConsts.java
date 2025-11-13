@@ -579,4 +579,9 @@ public final class OzoneConsts {
    * Quota Units.
    */
   public enum Units { TB, GB, MB, KB, B }
+
+  /**
+   * Supported Vector DBs
+   */
+  public enum VectorDB { VESPA, OPENSEARCH }
 }

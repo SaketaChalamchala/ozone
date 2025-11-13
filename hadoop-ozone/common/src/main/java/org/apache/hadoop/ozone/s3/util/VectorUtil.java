@@ -21,4 +21,30 @@ public class VectorUtil {
   public static String getVectorBucketSchemaMetadata(String indexName) {
       return "ozoneVectorBucket/" + indexName;
   }
+
+  public static String validateDataType(String dataType) {
+    String type = dataType.toLowerCase();
+    if (!type.equals("float32")) {
+      throw new UnsupportedOperationException("Unsupported data type: " + type);
+    }
+    return type;
+  }
+
+  public static int validateDimension(int dimension) {
+    if (dimension <= 1 || dimension >= 4096) {
+      throw new UnsupportedOperationException("Dimension must be between 0 and 4096");
+    }
+    return dimension;
+  }
+
+  public static String validateDistanceMetric(String distanceMetric) {
+    String metric = distanceMetric.toLowerCase();
+    switch (metric) {
+    case "cosine":
+    case "euclidean":
+      return metric;
+    default:
+      throw new UnsupportedOperationException("Unsupported distance metric: " + metric);
+    }
+  }
 }

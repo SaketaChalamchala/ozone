@@ -17,6 +17,8 @@
 
 package org.apache.hadoop.ozone;
 
+import static org.apache.hadoop.ozone.OzoneConsts.VectorDB.VESPA;
+
 import java.util.concurrent.TimeUnit;
 import org.apache.hadoop.hdds.annotation.InterfaceAudience;
 import org.apache.hadoop.hdds.annotation.InterfaceStability;
@@ -708,6 +710,8 @@ public final class OzoneConfigKeys {
       "hdds.scmclient.failover.max.retry";
   public static final String OZONE_S3G_VECTOR_ENABLED = "ozone.s3g.vector.enabled";
   public static final boolean OZONE_S3G_VECTOR_ENABLED_DEFAULT = false;
+  public static final String OZONE_S3G_VECTOR_DB = "ozone.s3g.vector.db";
+  public static final String OZONE_S3G_VECTOR_DB_DEFAULT = VESPA.name();
   public static final String OZONE_S3G_VECTOR_HOST = "ozone.s3g.vector.host";
   public static final String OZONE_S3G_VECTOR_PORT = "ozone.s3g.vector.port";
   public static final String OZONE_S3G_SCHEMA_VECTOR_HOST = "ozone.s3g.vector.schema.host";

@@ -22,6 +22,7 @@ import org.apache.hadoop.hdds.utils.db.CopyObject;
 import org.apache.hadoop.hdds.utils.db.DelegatedCodec;
 import org.apache.hadoop.hdds.utils.db.Proto2Codec;
 import org.apache.hadoop.ozone.protocol.proto.OzoneManagerProtocolProtos.VectorIndex;
+import org.apache.hadoop.ozone.s3.util.VectorUtil;
 
 public class OzoneVectorIndex implements CopyObject<OzoneVectorIndex> {
 
@@ -30,9 +31,9 @@ public class OzoneVectorIndex implements CopyObject<OzoneVectorIndex> {
   private final String distanceMetric;
 
   private OzoneVectorIndex(String dataType, int dimension, String distanceMetric) {
-    this.dataType = dataType;
-    this.dimension = dimension;
-    this.distanceMetric = distanceMetric;
+    this.dataType = VectorUtil.validateDataType(dataType);
+    this.dimension = VectorUtil.validateDimension(dimension);
+    this.distanceMetric = VectorUtil.validateDistanceMetric(distanceMetric);
   }
 
   public String getDataType() {
