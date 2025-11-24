@@ -25,6 +25,10 @@ public class IndexData {
   private List<Float> embedding;
   private String metadata;
 
+  public IndexData() {
+    // Default constructor for serialization/deserialization
+  }
+
   public IndexData(String indexName, List<Float> embedding, String metadata) {
     this.indexName = indexName;
     this.embedding = embedding;

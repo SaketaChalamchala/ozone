@@ -53,6 +53,7 @@ import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.search.Hit;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.CreateIndexResponse;
+import org.opensearch.client.opensearch.indices.ExistsRequest;
 import org.opensearch.client.transport.OpenSearchTransport;
 import org.opensearch.client.transport.rest_client.RestClientTransport;
 import org.slf4j.Logger;
@@ -87,8 +88,14 @@ public class OpensearchVectorStore implements VectorStore {
     for (OzoneVectorIndex vectorIndex : vectorIndices) {
       String schemaName = vectorIndex.getIndexName();
       try {
+        // Check if the index already exists
+        boolean exists = client.indices().exists(new ExistsRequest.Builder().index(schemaName).build()).value();
+        if (exists) {
+          LOG.info("Index {} already exists. Skipping creation.", schemaName);
+          continue;
+        }
+
         KnnVectorProperty knnVectorProperty = new KnnVectorProperty.Builder()
-            .dataType(vectorIndex.getDataType())
             .dimension(vectorIndex.getDimension())
             .method(m -> m
                 .name(KNN_VECTOR_METHOD)

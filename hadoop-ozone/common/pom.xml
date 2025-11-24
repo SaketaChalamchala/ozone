@@ -133,33 +133,13 @@
     <dependency>
       <groupId>org.opensearch.client</groupId>
       <artifactId>opensearch-java</artifactId>
-      <version>2.18.0</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.httpcomponents.core5</groupId>
-          <artifactId>httpcore5</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.eclipse</groupId>
-          <artifactId>yasson</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.opensearch.client</groupId>
-          <artifactId>opensearch-rest-client</artifactId>
-        </exclusion>
-      </exclusions>
+      <version>2.6.0</version>
     </dependency>
 
     <dependency>
       <groupId>org.opensearch.client</groupId>
       <artifactId>opensearch-rest-client</artifactId>
       <version>2.18.0</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.httpcomponents</groupId>
-          <artifactId>httpasyncclient</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

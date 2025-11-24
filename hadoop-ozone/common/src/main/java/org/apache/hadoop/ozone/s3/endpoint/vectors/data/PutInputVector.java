@@ -26,12 +26,14 @@ public class PutInputVector {
   private VectorData data;
   @JsonProperty(value = "key", required = true)
   private String key;
-  @JsonProperty(value = "metadata")
+  @JsonProperty("metadata")
   private JsonNode metadata;
 
   @JsonCreator
   public PutInputVector(@JsonProperty(value = "data", required = true) VectorData data,
-      @JsonProperty(value = "key", required = true)String key, @JsonProperty(value = "metadata") JsonNode metadata) {
+      @JsonProperty(value = "key", required = true) String key,
+      @JsonProperty("metadata") JsonNode metadata) {
+
     this.data = data;
     this.key = key;
     this.metadata = metadata;
@@ -47,5 +49,17 @@ public class PutInputVector {
 
   public JsonNode getMetadata() {
     return metadata;
+  }
+
+  public void setData(VectorData data) {
+    this.data = data;
+  }
+
+  public void setKey(String key) {
+    this.key = key;
+  }
+
+  public void setMetadata(JsonNode metadata) {
+    this.metadata = metadata;
   }
 }

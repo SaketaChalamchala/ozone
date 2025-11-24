@@ -22,24 +22,42 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public class QueryOutputVector {
+  @JsonProperty("data")
+  private VectorData data;
+
+  @JsonProperty("distance")
+  private float distance;
+
   @JsonProperty(value = "key", required = true)
   private String key;
 
-  @JsonProperty(value = "data")
-  private VectorData data;
-
-  @JsonProperty(value = "distance")
-  private float distance;
-
-  @JsonProperty(value = "metadata")
+  @JsonProperty("metadata")
   private JsonNode metadata;
 
   @JsonCreator
-  public QueryOutputVector(@JsonProperty("data") VectorData data, @JsonProperty("distance") float distance,
-      @JsonProperty(value = "key", required = true) String key, @JsonProperty("metadata") JsonNode metadata) {
+  public QueryOutputVector(@JsonProperty("data") VectorData data,
+      @JsonProperty("distance") float distance,
+      @JsonProperty(value = "key", required = true) String key,
+      @JsonProperty("metadata") JsonNode metadata) {
     this.data = data;
     this.distance = distance;
     this.key = key;
     this.metadata = metadata;
+  }
+
+  public VectorData getVector() {
+    return data;
+  }
+
+  public float getDistance() {
+    return distance;
+  }
+
+  public String getKey() {
+    return key;
+  }
+
+  public JsonNode getMetadata() {
+    return metadata;
   }
 }
