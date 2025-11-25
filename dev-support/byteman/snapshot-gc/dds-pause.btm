@@ -1,0 +1,22 @@
+# Step 0: Pause Directory Deleting Service
+RULE Pause Directory Deleting Service before running tasks
+CLASS org.apache.hadoop.ozone.om.service.DirectoryDeletingService$DirDeletingTask
+METHOD call
+AFTER INVOKE org.apache.hadoop.ozone.om.service.DirectoryDeletingService.shouldRun
+IF !flagged("allowDeletion")
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0 - Pausing Directory Deleting Service");
+    $! = false;
+ENDRULE
+
+# Step 0.1: Resume Directory Deleting Service
+RULE Resume Directory Deleting Service
+CLASS org.apache.hadoop.ozone.om.service.DirectoryDeletingService$DirDeletingTask
+METHOD call
+AFTER INVOKE org.apache.hadoop.ozone.om.service.DirectoryDeletingService.shouldRun
+IF flagged("allowDeletion")
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0.1 - Resuming Directory Deleting Service");
+ENDRULE

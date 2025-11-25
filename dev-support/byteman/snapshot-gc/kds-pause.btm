@@ -1,0 +1,22 @@
+# Step 0: Pause Key Deleting Service
+RULE Pause Key Deleting Service before running tasks
+CLASS org.apache.hadoop.ozone.om.service.KeyDeletingService$KeyDeletingTask
+METHOD call
+AFTER INVOKE org.apache.hadoop.ozone.om.service.KeyDeletingService.shouldRun
+IF !flagged("allowDeletion")
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0 - Pausing Key Deleting Service");
+    $! = false;
+ENDRULE
+
+# Step 0.1: Resume Key Deleting Service
+RULE Resume Key Deleting Service
+CLASS org.apache.hadoop.ozone.om.service.KeyDeletingService$KeyDeletingTask
+METHOD call
+AFTER INVOKE org.apache.hadoop.ozone.om.service.KeyDeletingService.shouldRun
+IF flagged("allowDeletion")
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0.1 - Resuming Key Deleting Service");
+ENDRULE

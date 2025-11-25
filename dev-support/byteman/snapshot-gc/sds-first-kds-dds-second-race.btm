@@ -1,0 +1,73 @@
+# Step 1: Pause snapshot deleting service after acquiring locks on deleted and next active snapshot
+# Step 1.1: Resume right before KDS/DDS try to acquire locks on active snapshot
+RULE Pause snapshot deleting service after acquiring snapshot locks
+CLASS org.apache.hadoop.ozone.om.service.SnapshotDeletingService$SnapshotDeletingTask
+METHOD call
+AFTER INVOKE org.apache.hadoop.ozone.om.snapshot.MultiSnapshotLocks.acquireLock
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 1 - Pausing snapshot deleting service after acquiring lock on the snapshots");
+    flag("allowDeletion");
+    waitFor("allowSDSProceed");
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 1.1 - Resuming Snapshot deletion service");
+ENDRULE
+
+# Step 2: Signal snapshot deletion service to resume right before KDS/DDS acquire locks on active snapshot
+RULE Signal snapshot deletion service to resume
+CLASS org.apache.hadoop.ozone.om.snapshot.filter.ReclaimableFilter
+METHOD initializePreviousSnapshotsFromChain
+AT INVOKE org.apache.hadoop.ozone.om.snapshot.MultiSnapshotLocks.acquireLock
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 2 - Signaling snapshot deletion service to resume right before KDS/DDS acquire lock on the active snapshot");
+    signalWake("allowSDSProceed");
+ENDRULE
+
+# Step 3: Log lock acquisition in ReclaimableFilter from KDS/DDS
+RULE Log snapshot lock acquisition in ReclaimableFileter
+CLASS org.apache.hadoop.ozone.om.snapshot.filter.ReclaimableFilter
+METHOD initializePreviousSnapshotsFromChain
+AT INVOKE org.apache.hadoop.ozone.om.snapshot.MultiSnapshotLocks.acquireLock
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 3 - Obtained lock on active snapshot in ReclaimableFilter");
+ENDRULE
+
+# Step 4: Log completion of MoveTableKey request
+RULE Log MoveTableKeys request completion
+CLASS org.apache.hadoop.ozone.om.response.snapshot.OMSnapshotMoveTableKeysResponse
+METHOD <init>
+AT EXIT
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 4 - MoveTableKeys request is submitted. Moving deletedKeys=" + $5.size() + " deletedDirs=" + $6.size() +
+    " from deleted snapshot=" + $2.getName() + " to active snapshot=" + $3.getName());
+ENDRULE
+
+# Step 5-1: Log completion of PurgeKeys request
+RULE Log PurgeKeys request completion
+CLASS org.apache.hadoop.ozone.om.response.key.OMKeyPurgeResponse
+METHOD <init>
+AT EXIT
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 5-1 - PurgeKeys request is submitted. Purging " + $2.size() + " keys from snapshot=" + $4.getName());
+ENDRULE
+
+# Step 5-2: Log completion of PurgeDirectories request
+RULE Log PurgeDirectories request completion
+CLASS org.apache.hadoop.ozone.om.response.key.OMDirectoriesPurgeResponseWithFSO
+METHOD <init>
+AT EXIT
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 5-2 - PurgeDirectories request is submitted. Purging " + $2.size() + " directories from snapshot=" +
+    $5.getName());
+ENDRULE
