@@ -1,0 +1,97 @@
+# Step 0-0: Do not run Key Deleting Service for AOSs
+RULE Do not run Key Deleting Service for AOS
+CLASS org.apache.hadoop.ozone.om.service.KeyDeletingService$KeyDeletingTask
+METHOD call
+AFTER INVOKE org.apache.hadoop.ozone.om.service.KeyDeletingService.shouldRun
+IF $0.snapshotId == null && !flagged("allowAOSDeletion")
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0-0 - Skipping Key Deleting Service for AOS");
+    $! = false;
+ENDRULE
+
+# Step 0-0.1: Run Key Deleting Service for AOS
+RULE Run Key Deleting Service for AOS
+CLASS org.apache.hadoop.ozone.om.service.KeyDeletingService$KeyDeletingTask
+METHOD call
+AFTER INVOKE org.apache.hadoop.ozone.om.service.KeyDeletingService.shouldRun
+IF $0.snapshotId == null && flagged("allowAOSDeletion")
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0-0.1 - Running Key Deleting Service for AOS");
+ENDRULE
+
+# Step 0-0.2: Run Key Deleting Service for snapshot
+RULE Run Key Deleting Service for snapshot
+CLASS org.apache.hadoop.ozone.om.service.KeyDeletingService$KeyDeletingTask
+METHOD call
+AFTER INVOKE org.apache.hadoop.ozone.om.service.KeyDeletingService.shouldRun
+IF $0.snapshotId != null
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0-0.1 - Running Key Deleting Service for snapshots");
+ENDRULE
+
+# Step 0-1: Pause all Key Deleting Service threads
+RULE Pause all Key Deleting Service threads
+CLASS org.apache.hadoop.ozone.om.service.KeyDeletingService$KeyDeletingTask
+METHOD call
+AT ENTRY
+IF $0.snapshotId != null
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0-1 - Pausing Key Deleting Service for snapshots");
+    waitFor("allowDeletion");
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0-1.1 - Resuming Key Deleting Service for snapshots");
+ENDRULE
+
+# Step 1: Detect directory deletion has completed
+RULE Detect directory deletion
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "DeleteKey"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 1 - Key Deletion has completed");
+    signalWake("allowRatisFlush", true);
+ENDRULE
+
+# Step 2: Detect snapshot creation has completed
+RULE Detect snapshot creation
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "CreateSnapshot"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 2 - Snapshot creation detected");
+    flag("allowAOSDeletion");
+ENDRULE
+
+# Step 3: Log Key deletion task exit
+RULE Log Key Deleting Task exit
+CLASS org.apache.hadoop.ozone.om.service.KeyDeletingService$KeyDeletingTask
+METHOD call
+AT EXIT
+IF $0.snapshotId != null
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 3 - Log Key deletion completion for snapshot" +
+    ". count=" + incrementCounter("kdsRunCount"));
+    signalWake("allowRatisFlush", true);
+ENDRULE
+
+# Step 4: Log submission of PurgeKeys request
+RULE Log PurgeKeys request submission to ratis
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "PurgeKeys"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 4 - PurgeKeys request is submitted. Purging " +
+    $1.getPurgeKeysRequest().getDeletedKeysList().size() +
+    " keys from snapshot=" + $1.getPurgeKeysRequest().getSnapshotTableKey());
+ENDRULE

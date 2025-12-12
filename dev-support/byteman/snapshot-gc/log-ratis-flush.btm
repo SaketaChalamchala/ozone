@@ -1,0 +1,36 @@
+# Step 0: Pause Ratis flush
+RULE Pause Ratis flush before flushing batch
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerDoubleBuffer
+METHOD flushBatch
+AT ENTRY
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0 - Pausing flush of Ratis transactions");
+    waitFor("allowRatisFlush");
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0.1 - Resuming flush of Ratis transactions");
+ENDRULE
+
+# Step 0.2: Log Ratis flush complete
+RULE Log Ratis flush completion
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerDoubleBuffer
+METHOD flushBatch
+AT EXIT
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0.2 - Ratis transactions have been flushed");
+    signalWake("allowDeletion", true);
+ENDRULE
+
+# INFO: Log isTransactionFlushedToDisk result
+RULE Log OMSnapshotManager.isTransactionFlushedToDisk result
+CLASS org.apache.hadoop.ozone.om.OmSnapshotManager
+METHOD isTransactionFlushedToDisk
+AT EXIT
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "INFO - OMSnapshotManager.isTransactionFlushedToDisk result = " + $!);
+ENDRULE

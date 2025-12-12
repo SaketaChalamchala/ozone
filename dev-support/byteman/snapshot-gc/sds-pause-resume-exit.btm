@@ -1,0 +1,49 @@
+# Step 0-1: Pause all Snapshot Deleting Service threads
+RULE Pause all Snapshot Deleting Service threads
+CLASS org.apache.hadoop.ozone.om.service.SnapshotDeletingService$SnapshotDeletingTask
+METHOD call
+AT ENTRY
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0-1 - Pausing Snapshot Deleting Service");
+    waitFor("allowDeletion");
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0-1.1 - Resuming Snapshot Deleting Service");
+ENDRULE
+
+# Step 2: Detect snapshot creation has completed
+RULE Detect snapshot creation
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "DeleteSnapshot"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 2 - Snapshot deletion detected");
+    signalWake("allowDeletion", true);
+ENDRULE
+
+# Step 3: Log Snapshot deletion task exit
+RULE Log Snapshot Deleting Task exit
+CLASS org.apache.hadoop.ozone.om.service.SnapshotDeletingService$SnapshotDeletingTask
+METHOD call
+AT EXIT
+IF true
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 3 - Log Snapshot deletion completion. count=" + incrementCounter("sdsRunCount"));
+    signalWake("allowRatisFlush");
+ENDRULE
+
+# Step 4: Log submission of PurgeSnapshot request
+RULE Log PurgeSnapshot request submission to ratis
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "SnapshotPurge"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 4 - PurgeSnapshot request is submitted. Purging snapshots: " +
+    String.join(",", $1.getSnapshotPurgeRequest().getSnapshotDBKeysList()));
+ENDRULE

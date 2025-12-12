@@ -1,0 +1,97 @@
+# Step 0-0: Do not run Directory Deleting Service for AOSs
+RULE Do not run Directory Deleting Service for AOS
+CLASS org.apache.hadoop.ozone.om.service.DirectoryDeletingService$DirDeletingTask
+METHOD call
+AFTER INVOKE org.apache.hadoop.ozone.om.service.DirectoryDeletingService.shouldRun
+IF $0.snapshotId == null && !flagged("allowAOSDeletion")
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0-0 - Skipping Directory Deleting Service for AOS");
+    $! = false;
+ENDRULE
+
+# Step 0-0.1: Run Directory Deleting Service for AOS
+RULE Run Directory Deleting Service for AOS
+CLASS org.apache.hadoop.ozone.om.service.DirectoryDeletingService$DirDeletingTask
+METHOD call
+AFTER INVOKE org.apache.hadoop.ozone.om.service.DirectoryDeletingService.shouldRun
+IF $0.snapshotId == null && flagged("allowAOSDeletion")
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0-0.1 - Running Directory Deleting Service for AOS");
+ENDRULE
+
+# Step 0-0.2: Run Directory Deleting Service for snapshot
+RULE Run Directory Deleting Service for snapshot
+CLASS org.apache.hadoop.ozone.om.service.DirectoryDeletingService$DirDeletingTask
+METHOD call
+AFTER INVOKE org.apache.hadoop.ozone.om.service.DirectoryDeletingService.shouldRun
+IF $0.snapshotId != null
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0-0.1 - Running Directory Deleting Service for snapshots");
+ENDRULE
+
+# Step 0-1: Pause all Directory Deleting Service threads
+RULE Pause all Directory Deleting Service threads
+CLASS org.apache.hadoop.ozone.om.service.DirectoryDeletingService$DirDeletingTask
+METHOD call
+AT ENTRY
+IF $0.snapshotId != null
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0-1 - Pausing Directory Deleting Service for snapshots");
+    waitFor("allowDeletion");
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 0-1.1 - Resuming Directory Deleting Service for snapshots");
+ENDRULE
+
+# Step 1: Detect directory deletion has completed
+RULE Detect directory deletion
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "DeleteKey"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 1 - Directory Deletion has completed");
+    signalWake("allowRatisFlush", true);
+ENDRULE
+
+# Step 2: Detect snapshot creation has completed
+RULE Detect snapshot creation
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "CreateSnapshot"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 2 - Snapshot creation detected");
+    flag("allowAOSDeletion");
+ENDRULE
+
+# Step 3: Log Directory deletion completion for snapshot
+RULE Log Directory Deleting Task exit
+CLASS org.apache.hadoop.ozone.om.service.DirectoryDeletingService$DirDeletingTask
+METHOD call
+AT EXIT
+IF $0.snapshotId != null
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 3 - Log Directory deletion completion for snapshot" +
+    ". count=" + incrementCounter("ddsExitCount"));
+    signalWake("allowRatisFlush", true);
+ENDRULE
+
+# Step 4: Log submission of PurgeDirectories request
+RULE Log PurgeDirectories request submission to ratis
+CLASS org.apache.hadoop.ozone.om.ratis.OzoneManagerRatisServer
+METHOD submitRequest
+AT EXIT
+IF $1.getCmdType().name() == "PurgeDirectories"
+DO
+    System.out.println("[" + java.time.LocalDateTime.now() + "] BYTEMAN: " +
+    "STEP 4 - PurgeDirectories request is submitted. Purging " +
+    $1.getPurgeDirectoriesRequest().getDeletedPathList().size() +
+    " directories from snapshot=" + $1.getPurgeDirectoriesRequest().getSnapshotTableKey());
+ENDRULE
