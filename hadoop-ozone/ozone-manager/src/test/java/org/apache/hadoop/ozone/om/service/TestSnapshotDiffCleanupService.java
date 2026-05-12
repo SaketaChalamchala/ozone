@@ -283,6 +283,27 @@ public class TestSnapshotDiffCleanupService {
     assertNumberOfEntriesInTable(reportTableCfh, 19);
   }
 
+  @Test
+  public void testCleanupRemovesReportEntriesForZeroEntryPurgedJob()
+      throws RocksDBException, IOException {
+    diffCleanupService.suspend();
+
+    long currentTime = System.currentTimeMillis() - 1;
+    SnapshotDiffJob failedJob = addJobAndReport(FAILED, currentTime, 0);
+    addReportEntries(failedJob.getJobId(), 2);
+
+    diffCleanupService.resume();
+
+    diffCleanupService.run();
+    assertJobInPurgedTable(failedJob.getJobId(),
+        failedJob.getTotalDiffEntries());
+    assertReport(failedJob.getJobId(), 2, emptyReportEntry);
+
+    diffCleanupService.run();
+    assertNumberOfEntriesInTable(purgedJobTableCfh, 0);
+    assertReport(failedJob.getJobId(), 2, null);
+  }
+
   private SnapshotDiffJob addJobAndReport(JobStatus jobStatus,
                                           long creationTime,
                                           long noOfEntries)
@@ -313,6 +334,15 @@ public class TestSnapshotDiffCleanupService {
           emptyReportEntry);
     }
     return job;
+  }
+
+  private void addReportEntries(String jobId, int noOfEntries)
+      throws IOException, RocksDBException {
+    for (int i = 0; i < noOfEntries; i++) {
+      db.get().put(reportTableCfh,
+          codecRegistry.asRawData(jobId + DELIMITER + i),
+          emptyReportEntry);
+    }
   }
 
   private void assertJobAndReport(SnapshotDiffJob expectedJob,
