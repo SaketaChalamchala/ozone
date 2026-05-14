@@ -191,22 +191,24 @@ public class TestSnapshotDiffCleanupService {
       diffCleanupService.shutdown();
     }
     if (jobTableCfh != null) {
+      dropColumnFamily(jobTableCfh);
       jobTableCfh.close();
     }
     if (purgedJobTableCfh != null) {
+      dropColumnFamily(purgedJobTableCfh);
       purgedJobTableCfh.close();
     }
     if (reportTableCfh != null) {
+      dropColumnFamily(reportTableCfh);
       reportTableCfh.close();
     }
-    if (jobTableCfd != null) {
-      ManagedColumnFamilyOptions.closeDeeply(jobTableCfd.getOptions());
-    }
-    if (purgedJobTableCfd != null) {
-      ManagedColumnFamilyOptions.closeDeeply(purgedJobTableCfd.getOptions());
-    }
-    if (reportTableCfd != null) {
-      ManagedColumnFamilyOptions.closeDeeply(reportTableCfd.getOptions());
+  }
+
+  private void dropColumnFamily(ColumnFamilyHandle columnFamilyHandle) {
+    try {
+      db.get().dropColumnFamily(columnFamilyHandle);
+    } catch (RocksDBException exception) {
+      throw new RuntimeException("Failed to drop column family.", exception);
     }
   }
 
