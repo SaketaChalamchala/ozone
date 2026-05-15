@@ -82,9 +82,6 @@ public class TestSnapshotDiffCleanupService {
       StringUtils.string2Bytes("snap-diff-purged-job-table");
   private final byte[] reportTableNameBytes =
       StringUtils.string2Bytes("snap-diff-report-table");
-  private ColumnFamilyDescriptor jobTableCfd;
-  private ColumnFamilyDescriptor purgedJobTableCfd;
-  private ColumnFamilyDescriptor reportTableCfd;
   private ColumnFamilyHandle jobTableCfh;
   private ColumnFamilyHandle purgedJobTableCfh;
   private ColumnFamilyHandle reportTableCfh;
@@ -154,11 +151,11 @@ public class TestSnapshotDiffCleanupService {
 
     when(ozoneManager.getConfiguration()).thenReturn(config);
 
-    jobTableCfd = new ColumnFamilyDescriptor(jobTableNameBytes,
+    ColumnFamilyDescriptor jobTableCfd = new ColumnFamilyDescriptor(jobTableNameBytes,
         columnFamilyOptions);
-    reportTableCfd = new ColumnFamilyDescriptor(reportTableNameBytes,
+    ColumnFamilyDescriptor reportTableCfd = new ColumnFamilyDescriptor(reportTableNameBytes,
         columnFamilyOptions);
-    purgedJobTableCfd = new ColumnFamilyDescriptor(purgedJobTableNameBytes,
+    ColumnFamilyDescriptor purgedJobTableCfd = new ColumnFamilyDescriptor(purgedJobTableNameBytes,
         columnFamilyOptions);
     jobTableCfh = db.get().createColumnFamily(jobTableCfd);
     purgedJobTableCfh = db.get().createColumnFamily(purgedJobTableCfd);
