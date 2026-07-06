@@ -177,15 +177,15 @@ public final class LatestVersionedKWayMergeIterator implements
     long latestTombstoneSeq = -1L;
 
     while (hasUserKey(valueHeap, nextKey) || hasUserKey(tombstoneHeap, nextKey)) {
-      DrainedVersion valueRound = drainHeapForUserKey(valueHeap, nextKey, true);
-      if (valueRound.entry != null && valueRound.sequence > latestValueSeq) {
-        latestValue = valueRound.entry;
-        latestValueSeq = valueRound.sequence;
+      MergeHead valueRound = drainHeapForUserKey(valueHeap, nextKey, true);
+      if (valueRound != null && valueRound.getSequence() > latestValueSeq) {
+        latestValue = valueRound;
+        latestValueSeq = valueRound.getSequence();
       }
-      DrainedVersion tombstoneRound = drainHeapForUserKey(tombstoneHeap, nextKey, false);
-      if (tombstoneRound.entry != null && tombstoneRound.sequence > latestTombstoneSeq) {
-        latestTombstone = tombstoneRound.entry;
-        latestTombstoneSeq = tombstoneRound.sequence;
+      MergeHead tombstoneRound = drainHeapForUserKey(tombstoneHeap, nextKey, false);
+      if (tombstoneRound != null && tombstoneRound.getSequence() > latestTombstoneSeq) {
+        latestTombstone = tombstoneRound;
+        latestTombstoneSeq = tombstoneRound.getSequence();
       }
     }
 
@@ -212,7 +212,7 @@ public final class LatestVersionedKWayMergeIterator implements
         && compareUserKeys(heap.peek().current.getUserKey(), userKey) == 0;
   }
 
-  private DrainedVersion drainHeapForUserKey(PriorityQueue<HeapEntry> heap, byte[] userKey,
+  private MergeHead drainHeapForUserKey(PriorityQueue<HeapEntry> heap, byte[] userKey,
       boolean snapshotValueWinners) throws IOException {
     MergeHead latest = null;
     long latestSeq = -1L;
@@ -233,8 +233,7 @@ public final class LatestVersionedKWayMergeIterator implements
       }
       for (HeapEntry entry : polled) {
         if (snapshotValueWinners && entry.current == latest
-            && entry.current instanceof RawSstHeapHead
-            && !entry.nextRecordHasSameUserKey(userKey)) {
+            && entry.current instanceof RawSstHeapHead) {
           ((RawSstHeapHead) entry.current).snapshotValue();
         }
         entry.advance();
@@ -244,7 +243,7 @@ public final class LatestVersionedKWayMergeIterator implements
       }
     }
 
-    return new DrainedVersion(latest, latestSeq);
+    return latest;
   }
 
   private void offerToHeap(HeapEntry entry) {
@@ -367,16 +366,6 @@ public final class LatestVersionedKWayMergeIterator implements
     }
   }
 
-  private static final class DrainedVersion {
-    private final MergeHead entry;
-    private final long sequence;
-
-    private DrainedVersion(MergeHead entry, long sequence) {
-      this.entry = entry;
-      this.sequence = sequence;
-    }
-  }
-
   private final class HeapEntry implements Comparable<HeapEntry> {
     private final int index;
     private final ClosableIterator<? extends MergeHead> iterator;
@@ -403,11 +392,6 @@ public final class LatestVersionedKWayMergeIterator implements
           return;
         }
       }
-    }
-
-    private boolean nextRecordHasSameUserKey(byte[] userKey) {
-      return iterator instanceof RawSstIterator
-          && ((RawSstIterator) iterator).nextRecordHasSameUserKey(userKey);
     }
 
     @Override
