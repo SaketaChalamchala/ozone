@@ -446,14 +446,6 @@ public final class LatestVersionedKWayMergeIterator implements
           valueBuffer);
     }
 
-    private boolean nextRecordHasSameUserKey(byte[] userKey) {
-      if (!iterator.hasNext()) {
-        return false;
-      }
-      byte[] nextKey = iterator.peekKeyBytes();
-      return nextKey != null && compareUserKeys(nextKey, userKey) == 0;
-    }
-
     @Override
     public void close() {
       if (closed) {
