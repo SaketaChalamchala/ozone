@@ -19,8 +19,6 @@ package org.apache.hadoop.hdds.utils.db;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.UnsignedLong;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -35,12 +33,12 @@ import org.apache.hadoop.hdds.utils.db.managed.ManagedOptions;
 import org.apache.hadoop.ozone.util.ClosableIterator;
 
 /**
- * Dual-heap k-way merge over RocksDB SST files for snapshot diff.
+ * K-way merge over RocksDB SST files for snapshot diff.
  * <p>
- * Two heaps track non-tombstones and tombstones separately. For each user key,
- * all versions are drained from both heaps, then snapshot-diff emit rules apply:
- * emit the latest tombstone and/or latest value, including both when a delete is
- * followed by a newer recreate.
+ * A single min-heap orders source heads by user key. For each user key, all versions
+ * are drained and the latest value and latest tombstone are tracked, then snapshot-diff
+ * emit rules apply: emit the latest tombstone and/or latest value, including both when
+ * a delete is followed by a newer recreate.
  * <p>
  * When constructed with an exclusive minimum sequence number {@code S}, each SST
  * source skips entries whose sequence is {@code <= S} while advancing.
@@ -56,19 +54,17 @@ public final class LatestVersionedKWayMergeIterator implements
   private final List<ClosableIterator<? extends MergeHead>> iterators;
   private final Long exclusiveMinSequenceNumber;
 
-  private final PriorityQueue<HeapEntry> valueHeap;
-  private final PriorityQueue<HeapEntry> tombstoneHeap;
+  private final PriorityQueue<HeapEntry> sourceHeads;
 
   private List<MergedKeyValue> emitQueue;
   private boolean initialized;
 
-  public static LatestVersionedKWayMergeIterator overRawSstFiles(Collection<Path> sstFiles)
-      throws IOException {
+  public static LatestVersionedKWayMergeIterator overRawSstFiles(Collection<Path> sstFiles) {
     return overRawSstFiles(sstFiles, DEFAULT_READ_AHEAD_SIZE, null);
   }
 
   public static LatestVersionedKWayMergeIterator overRawSstFiles(Collection<Path> sstFiles,
-      int readAheadSizePerFile) throws IOException {
+      int readAheadSizePerFile) {
     return overRawSstFiles(sstFiles, readAheadSizePerFile, null);
   }
 
@@ -79,25 +75,25 @@ public final class LatestVersionedKWayMergeIterator implements
    *        sequence {@code <=} this value while advancing; when null, no entries are skipped
    */
   public static LatestVersionedKWayMergeIterator overRawSstFiles(Collection<Path> sstFiles,
-      int readAheadSizePerFile, Long exclusiveMinSequenceNumber) throws IOException {
+      int readAheadSizePerFile, Long exclusiveMinSequenceNumber) {
     Objects.requireNonNull(sstFiles, "sstFiles cannot be null");
     ManagedOptions options = new ManagedOptions();
     List<ClosableIterator<? extends MergeHead>> sources = new ArrayList<>(sstFiles.size());
-    for (Path file : sstFiles) {
-      sources.add(new RawSstIterator(options, file, readAheadSizePerFile));
+    try {
+      for (Path file : sstFiles) {
+        sources.add(new RawSstIterator(options, file, readAheadSizePerFile));
+      }
+      return new LatestVersionedKWayMergeIterator(options, sources, exclusiveMinSequenceNumber);
+    } catch (RuntimeException e) {
+      IOUtils.closeQuietly(sources);
+      options.close();
+      throw e;
     }
-    return new LatestVersionedKWayMergeIterator(options, sources, exclusiveMinSequenceNumber);
   }
 
   public static LatestVersionedKWayMergeIterator overRawSstFiles(Collection<Path> sstFiles,
-      long exclusiveMinSequenceNumber) throws IOException {
+      long exclusiveMinSequenceNumber) {
     return overRawSstFiles(sstFiles, DEFAULT_READ_AHEAD_SIZE, exclusiveMinSequenceNumber);
-  }
-
-  @VisibleForTesting
-  public static LatestVersionedKWayMergeIterator forTest(
-      List<ClosableIterator<MergedKeyValue>> iterators) {
-    return forTest(iterators, null);
   }
 
   @VisibleForTesting
@@ -115,8 +111,7 @@ public final class LatestVersionedKWayMergeIterator implements
     this.options = options;
     this.iterators = new ArrayList<>(Objects.requireNonNull(iterators, "iterators cannot be null"));
     this.exclusiveMinSequenceNumber = exclusiveMinSequenceNumber;
-    this.valueHeap = new PriorityQueue<>(Math.max(this.iterators.size(), 1));
-    this.tombstoneHeap = new PriorityQueue<>(Math.max(this.iterators.size(), 1));
+    this.sourceHeads = new PriorityQueue<>(Math.max(this.iterators.size(), 1));
     this.emitQueue = new ArrayList<>();
   }
 
@@ -125,11 +120,7 @@ public final class LatestVersionedKWayMergeIterator implements
     if (!emitQueue.isEmpty()) {
       return true;
     }
-    try {
-      return advance();
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
+    return advance();
   }
 
   @Override
@@ -140,52 +131,54 @@ public final class LatestVersionedKWayMergeIterator implements
     return emitQueue.remove(0);
   }
 
-  private boolean advance() throws IOException {
+  private boolean advance() {
     if (!initialized) {
-      initHeaps();
+      initHeap();
       initialized = true;
     }
 
-    while (emitQueue.isEmpty() && (!valueHeap.isEmpty() || !tombstoneHeap.isEmpty())) {
+    while (emitQueue.isEmpty() && !sourceHeads.isEmpty()) {
       processNextUserKey();
     }
 
     return !emitQueue.isEmpty();
   }
 
-  private void processNextUserKey() throws IOException {
-    if (valueHeap.isEmpty() && tombstoneHeap.isEmpty()) {
+  private void processNextUserKey() {
+    if (sourceHeads.isEmpty()) {
       return;
     }
 
-    byte[] nextKey = null;
-    if (!valueHeap.isEmpty() && !tombstoneHeap.isEmpty()) {
-      int cmp = compareUserKeys(
-          valueHeap.peek().current.getUserKey(), tombstoneHeap.peek().current.getUserKey());
-      nextKey = cmp <= 0
-          ? valueHeap.peek().current.getUserKey()
-          : tombstoneHeap.peek().current.getUserKey();
-    } else if (!valueHeap.isEmpty()) {
-      nextKey = valueHeap.peek().current.getUserKey();
-    } else {
-      nextKey = tombstoneHeap.peek().current.getUserKey();
-    }
-
+    byte[] nextKey = sourceHeads.peek().current.getUserKey();
     MergeHead latestValue = null;
     long latestValueSeq = -1L;
     MergeHead latestTombstone = null;
     long latestTombstoneSeq = -1L;
 
-    while (hasUserKey(valueHeap, nextKey) || hasUserKey(tombstoneHeap, nextKey)) {
-      MergeHead valueRound = drainHeapForUserKey(valueHeap, nextKey, true);
-      if (valueRound != null && valueRound.getSequence() > latestValueSeq) {
-        latestValue = valueRound;
-        latestValueSeq = valueRound.getSequence();
+    while (heapHasUserKey(nextKey)) {
+      List<HeapEntry> polled = new ArrayList<>();
+      while (heapHasUserKey(nextKey)) {
+        HeapEntry entry = sourceHeads.poll();
+        MergeHead head = entry.current;
+        if (head.isTombstone()) {
+          if (head.getSequence() > latestTombstoneSeq) {
+            latestTombstone = head;
+            latestTombstoneSeq = head.getSequence();
+          }
+        } else if (head.getSequence() > latestValueSeq) {
+          latestValue = head;
+          latestValueSeq = head.getSequence();
+        }
+        polled.add(entry);
       }
-      MergeHead tombstoneRound = drainHeapForUserKey(tombstoneHeap, nextKey, false);
-      if (tombstoneRound != null && tombstoneRound.getSequence() > latestTombstoneSeq) {
-        latestTombstone = tombstoneRound;
-        latestTombstoneSeq = tombstoneRound.getSequence();
+      for (HeapEntry entry : polled) {
+        if (entry.current == latestValue && entry.current instanceof RawSstHeapHead) {
+          ((RawSstHeapHead) entry.current).snapshotValue();
+        }
+        entry.advance();
+        if (entry.current != null) {
+          sourceHeads.offer(entry);
+        }
       }
     }
 
@@ -207,59 +200,17 @@ public final class LatestVersionedKWayMergeIterator implements
     }
   }
 
-  private boolean hasUserKey(PriorityQueue<HeapEntry> heap, byte[] userKey) {
-    return !heap.isEmpty()
-        && compareUserKeys(heap.peek().current.getUserKey(), userKey) == 0;
+  private boolean heapHasUserKey(byte[] userKey) {
+    return !sourceHeads.isEmpty()
+        && compareUserKeys(sourceHeads.peek().current.getUserKey(), userKey) == 0;
   }
 
-  private MergeHead drainHeapForUserKey(PriorityQueue<HeapEntry> heap, byte[] userKey,
-      boolean snapshotValueWinners) throws IOException {
-    MergeHead latest = null;
-    long latestSeq = -1L;
-
-    while (true) {
-      List<HeapEntry> polled = new ArrayList<>();
-      while (!heap.isEmpty()
-          && compareUserKeys(heap.peek().current.getUserKey(), userKey) == 0) {
-        HeapEntry entry = heap.poll();
-        if (entry.current.getSequence() > latestSeq) {
-          latest = entry.current;
-          latestSeq = entry.current.getSequence();
-        }
-        polled.add(entry);
-      }
-      if (polled.isEmpty()) {
-        break;
-      }
-      for (HeapEntry entry : polled) {
-        if (snapshotValueWinners && entry.current == latest
-            && entry.current instanceof RawSstHeapHead) {
-          ((RawSstHeapHead) entry.current).snapshotValue();
-        }
-        entry.advance();
-        if (entry.current != null) {
-          offerToHeap(entry);
-        }
-      }
-    }
-
-    return latest;
-  }
-
-  private void offerToHeap(HeapEntry entry) {
-    if (entry.current.isTombstone()) {
-      tombstoneHeap.offer(entry);
-    } else {
-      valueHeap.offer(entry);
-    }
-  }
-
-  private void initHeaps() throws IOException {
+  private void initHeap() {
     for (int idx = 0; idx < iterators.size(); idx++) {
       ClosableIterator<? extends MergeHead> iterator = iterators.get(idx);
       HeapEntry entry = new HeapEntry(idx, iterator);
       if (entry.current != null) {
-        offerToHeap(entry);
+        sourceHeads.offer(entry);
       }
     }
   }
@@ -371,14 +322,13 @@ public final class LatestVersionedKWayMergeIterator implements
     private final ClosableIterator<? extends MergeHead> iterator;
     private MergeHead current;
 
-    private HeapEntry(int index, ClosableIterator<? extends MergeHead> iterator)
-        throws IOException {
+    private HeapEntry(int index, ClosableIterator<? extends MergeHead> iterator) {
       this.index = index;
       this.iterator = iterator;
       advance();
     }
 
-    private void advance() throws IOException {
+    private void advance() {
       while (true) {
         if (!iterator.hasNext()) {
           current = null;
