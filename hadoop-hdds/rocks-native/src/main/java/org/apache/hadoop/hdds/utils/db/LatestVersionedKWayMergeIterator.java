@@ -91,7 +91,7 @@ public final class LatestVersionedKWayMergeIterator implements
     }
   }
 
-  public static LatestVersionedKWayMergeIterator overRawSstFiles(Collection<Path> sstFiles,
+  public static LatestVersionedKWayMergeIterator overRawSstFilesFromSequence(Collection<Path> sstFiles,
       long exclusiveMinSequenceNumber) {
     return overRawSstFiles(sstFiles, DEFAULT_READ_AHEAD_SIZE, exclusiveMinSequenceNumber);
   }
@@ -374,9 +374,18 @@ public final class LatestVersionedKWayMergeIterator implements
     private boolean closed;
 
     private RawSstIterator(ManagedOptions options, Path file, int readAheadSize) {
-      this.reader = new ManagedRawSSTFileReader(
+      ManagedRawSSTFileReader openedReader = new ManagedRawSSTFileReader(
           options, file.toAbsolutePath().toString(), readAheadSize);
-      this.iterator = reader.newIterator(kv -> kv, null, null, IteratorType.KEY_AND_VALUE);
+      ManagedRawSSTFileIterator<ManagedRawSSTFileIterator.KeyValue> openedIterator;
+      try {
+        openedIterator = openedReader.newIterator(
+            kv -> kv, null, null, IteratorType.KEY_AND_VALUE);
+      } catch (RuntimeException e) {
+        openedReader.close();
+        throw e;
+      }
+      this.reader = openedReader;
+      this.iterator = openedIterator;
     }
 
     @Override

@@ -21,8 +21,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import org.apache.hadoop.hdds.utils.db.ExpectedLatestVersionMergeOutput.SourceRecord;
 import org.apache.hadoop.hdds.utils.db.managed.ManagedOptions;
 
 /**
@@ -78,5 +78,44 @@ final class TestRawSstFileRecords {
     byte[] bytes = new byte[byteBuffer.remaining()];
     byteBuffer.get(bytes);
     return bytes;
+  }
+
+  static final class SourceRecord {
+    private final byte[] userKey;
+    private final long sequence;
+    private final int type;
+    private final byte[] value;
+
+    SourceRecord(byte[] userKey, long sequence, int type, byte[] value) {
+      this.userKey = userKey;
+      this.sequence = sequence;
+      this.type = type;
+      this.value = value;
+    }
+
+    byte[] getUserKey() {
+      return userKey;
+    }
+
+    long getSequence() {
+      return sequence;
+    }
+
+    int getType() {
+      return type;
+    }
+
+    byte[] getValue() {
+      return value;
+    }
+
+    @Override
+    public String toString() {
+      return "SourceRecord{key=" + Arrays.toString(userKey)
+          + ", seq=" + sequence
+          + ", type=" + type
+          + ", value=" + (value == null ? null : Arrays.toString(value))
+          + '}';
+    }
   }
 }

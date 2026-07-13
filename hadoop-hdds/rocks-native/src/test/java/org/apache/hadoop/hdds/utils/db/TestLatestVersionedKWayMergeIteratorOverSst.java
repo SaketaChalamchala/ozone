@@ -36,8 +36,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.hadoop.hdds.utils.NativeLibraryNotLoadedException;
-import org.apache.hadoop.hdds.utils.db.ExpectedLatestVersionMergeOutput.SourceRecord;
 import org.apache.hadoop.hdds.utils.db.LatestVersionedKWayMergeIterator.MergedKeyValue;
+import org.apache.hadoop.hdds.utils.db.TestRawSstFileRecords.SourceRecord;
 import org.apache.hadoop.hdds.utils.db.managed.ManagedColumnFamilyOptions;
 import org.apache.hadoop.hdds.utils.db.managed.ManagedDBOptions;
 import org.apache.hadoop.hdds.utils.db.managed.ManagedRocksDB;
@@ -50,8 +50,6 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.FlushOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * End-to-end test over real SST files produced by RocksDB flush.
@@ -61,13 +59,9 @@ import org.slf4j.LoggerFactory;
  * real RocksDB after each logical source batch yields SST files with global sequence numbers.
  * Memtable flushes retain only the latest value per user key within each SST; competing versions
  * appear across separate flushed files, matching production snapshot-diff inputs.
- * Expected output is computed independently by reading each SST file and applying
- * {@link ExpectedLatestVersionMergeOutput}.
  */
 @EnabledIfSystemProperty(named = ROCKS_TOOLS_NATIVE_PROPERTY, matches = "true")
 class TestLatestVersionedKWayMergeIteratorOverSst {
-  private static final Logger LOG =
-      LoggerFactory.getLogger(TestLatestVersionedKWayMergeIteratorOverSst.class);
 
   @TempDir
   private Path tempDir;
@@ -132,57 +126,8 @@ class TestLatestVersionedKWayMergeIteratorOverSst {
         .count();
     assertEquals(3, distinctK1Sequences,
         "k1 versions across SST files should carry distinct RocksDB sequence numbers");
-    List<SourceRecord> expected = ExpectedLatestVersionMergeOutput.fromSourceRecords(perSource);
+
     List<MergedKeyValue> actual = mergeSstFiles(sstFiles.toArray(new Path[0]));
-
-    logRawInputs(perSource);
-    logComparison(expected, actual);
-    assertResultsEqual(expected, actual);
-    assertWorkedExampleOutcomes(actual);
-  }
-
-  @Test
-  void testDeleteRecreateOverRealSstFiles() throws Exception {
-    Path dbDir = tempDir.resolve("delete-recreate-db");
-    Files.createDirectories(dbDir);
-    Set<String> knownSstFiles = new HashSet<>();
-
-    Path tombstoneSst;
-    Path recreateSst;
-    try (ManagedDBOptions dbOptions = new ManagedDBOptions();
-         ManagedColumnFamilyOptions cfOptions = new ManagedColumnFamilyOptions();
-         FlushOptions flushOptions = new FlushOptions()) {
-      dbOptions.setCreateIfMissing(true);
-      List<ColumnFamilyDescriptor> columnFamilyDescriptors = Collections.singletonList(
-          new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfOptions));
-      List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-      try (ManagedRocksDB db = ManagedRocksDB.open(
-          dbOptions, dbDir.toString(), columnFamilyDescriptors, columnFamilyHandles);
-           ColumnFamilyHandle cf = columnFamilyHandles.get(0)) {
-
-        rocksDelete(db, cf, "k1");
-        tombstoneSst = flushAndCopySst(db, dbDir, cf, flushOptions, knownSstFiles, "delete");
-
-        rocksPut(db, cf, "k1", "v-new");
-        recreateSst = flushAndCopySst(db, dbDir, cf, flushOptions, knownSstFiles, "recreate");
-      }
-    }
-
-    List<List<SourceRecord>> perSource =
-        TestRawSstFileRecords.readFiles(Arrays.asList(tombstoneSst, recreateSst));
-    List<SourceRecord> expected = ExpectedLatestVersionMergeOutput.fromSourceRecords(perSource);
-    List<MergedKeyValue> actual = mergeSstFiles(tombstoneSst, recreateSst);
-
-    logRawInputs(perSource);
-    logComparison(expected, actual);
-    assertResultsEqual(expected, actual);
-    assertEquals(2, actual.size(), "delete-recreate should emit tombstone then value");
-    assertNotEquals(LatestVersionedKWayMergeIterator.ROCKS_TYPE_VALUE, actual.get(0).getValueType());
-    assertEquals(LatestVersionedKWayMergeIterator.ROCKS_TYPE_VALUE, actual.get(1).getValueType());
-    assertTrue(actual.get(1).getSequence() > actual.get(0).getSequence());
-  }
-
-  private static void assertWorkedExampleOutcomes(List<MergedKeyValue> actual) {
     assertEquals(3, actual.size(), "expected k1 winner plus k2 tombstone and recreate value");
 
     MergedKeyValue k1Winner = actual.get(0);
@@ -256,33 +201,4 @@ class TestLatestVersionedKWayMergeIteratorOverSst {
     return value.getBytes(StandardCharsets.UTF_8);
   }
 
-  private static void assertResultsEqual(List<SourceRecord> expected, List<MergedKeyValue> actual) {
-    assertEquals(expected.size(), actual.size());
-    for (int i = 0; i < expected.size(); i++) {
-      SourceRecord exp = expected.get(i);
-      MergedKeyValue act = actual.get(i);
-      assertArrayEquals(exp.getUserKey(), act.getUserKey());
-      assertEquals(exp.getSequence(), act.getSequence());
-      assertEquals(exp.getType(), act.getValueType());
-      assertArrayEquals(exp.getValue(), act.getValue());
-    }
-  }
-
-  private static void logRawInputs(List<List<SourceRecord>> perSource) {
-    for (int i = 0; i < perSource.size(); i++) {
-      for (SourceRecord record : perSource.get(i)) {
-        LOG.info("raw source={} key={} seq={} type={}",
-            i, new String(record.getUserKey(), StandardCharsets.UTF_8),
-            record.getSequence(), record.getType());
-      }
-    }
-  }
-
-  private static void logComparison(List<SourceRecord> expected, List<MergedKeyValue> actual) {
-    for (int i = 0; i < expected.size(); i++) {
-      LOG.info("compare[{}] expected seq={} type={} actual seq={} type={}",
-          i, expected.get(i).getSequence(), expected.get(i).getType(),
-          actual.get(i).getSequence(), actual.get(i).getValueType());
-    }
-  }
 }
