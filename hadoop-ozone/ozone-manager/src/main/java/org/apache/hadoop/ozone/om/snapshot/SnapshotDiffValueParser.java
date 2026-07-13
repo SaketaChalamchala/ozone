@@ -198,7 +198,7 @@ public final class SnapshotDiffValueParser {
       }
     }
 
-    addCanonicalizedDigest(digest, KeyInfo.METADATA_FIELD_NUMBER, metadataSignatures);
+    addCanonicalizedDigest(digest, DirectoryInfo.METADATA_FIELD_NUMBER, metadataSignatures);
 
     return digest.digest();
   }
