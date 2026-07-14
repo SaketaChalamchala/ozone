@@ -96,6 +96,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.management.ObjectName;
 import org.apache.commons.io.file.PathUtils;
@@ -1352,6 +1353,53 @@ public class SnapshotDiffManager implements AutoCloseable, SnapshotDiffManagerMX
     }
     return OzoneConsts.ROOT_PATH.resolve(key).toString()
         .substring(1);
+  }
+
+  /**
+   * Returns whether any ancestor of the given parent is a deleted directory.
+   */
+  @VisibleForTesting
+  boolean hasDeletedAncestor(long parentObjectId, Set<Long> deletedDirectoryIds,
+      Map<Long, Long> objectIdToParentId, long bucketObjectId) {
+    long currentParent = parentObjectId;
+    while (currentParent != bucketObjectId) {
+      if (deletedDirectoryIds.contains(currentParent)) {
+        return true;
+      }
+      Long nextParent = objectIdToParentId.get(currentParent);
+      if (nextParent == null) {
+        throw new IllegalStateException(
+            "Missing parent for object ID: " + currentParent);
+      }
+      currentParent = nextParent;
+    }
+    return false;
+  }
+
+  /**
+   * Filters mixed directory and file delete entries, retaining only those without
+   * a deleted directory ancestor. FSO buckets only.
+   */
+  @VisibleForTesting
+  <T extends WithParentObjectId> List<T> filterTopLevelDeletedEntries(
+      Collection<T> deletedEntries,
+      Predicate<T> isDirectory,
+      Map<Long, Long> objectIdToParentId,
+      long bucketObjectId) {
+    Set<Long> deletedDirectoryIds = new HashSet<>();
+    for (T deletedEntry : deletedEntries) {
+      if (isDirectory.test(deletedEntry)) {
+        deletedDirectoryIds.add(deletedEntry.getObjectID());
+      }
+    }
+    List<T> filteredDeletes = new ArrayList<>();
+    for (T deletedEntry : deletedEntries) {
+      if (!hasDeletedAncestor(deletedEntry.getParentObjectID(), deletedDirectoryIds,
+          objectIdToParentId, bucketObjectId)) {
+        filteredDeletes.add(deletedEntry);
+      }
+    }
+    return filteredDeletes;
   }
 
   @SuppressWarnings({"checkstyle:ParameterNumber", "checkstyle:MethodLength"})

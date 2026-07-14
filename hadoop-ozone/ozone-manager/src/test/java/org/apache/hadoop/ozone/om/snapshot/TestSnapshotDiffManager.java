@@ -1665,6 +1665,57 @@ public class TestSnapshotDiffManager {
         .containsExactlyElementsOf(expectedEntries);
   }
 
+  @ParameterizedTest
+  @MethodSource("filterTopLevelDeletedEntryScenarios")
+  public void testFilterTopLevelDeletedEntriesMixed(
+      List<WithParentObjectId> deletedEntries, Set<Long> expectedObjectIds) {
+    long bucketObjectId = 0L;
+    Map<Long, Long> objectIdToParentId = buildDirATreeParentMap(bucketObjectId);
+
+    List<WithParentObjectId> filteredDeletes = snapshotDiffManager
+        .filterTopLevelDeletedEntries(deletedEntries, OmDirectoryInfo.class::isInstance,
+            objectIdToParentId, bucketObjectId);
+
+    assertThat(filteredDeletes)
+        .extracting(WithParentObjectId::getObjectID)
+        .containsExactlyInAnyOrderElementsOf(expectedObjectIds);
+  }
+
+  private static Stream<Arguments> filterTopLevelDeletedEntryScenarios() {
+    long bucketObjectId = 0L;
+    OmDirectoryInfo dirA = newDeletedDir(100L, bucketObjectId);
+    OmDirectoryInfo dirB = newDeletedDir(101L, 100L);
+    OmDirectoryInfo dirC = newDeletedDir(102L, 101L);
+    OmDirectoryInfo dirD = newDeletedDir(103L, 101L);
+    OmKeyInfo fileA = newDeletedFile(104L, 102L);
+    return Stream.of(
+        Arguments.of(
+            Arrays.asList(dirA, dirB, dirC, fileA, dirD),
+            Sets.newHashSet(dirA.getObjectID())),
+        Arguments.of(
+            Arrays.asList(dirA, dirD, fileA),
+            Sets.newHashSet(dirA.getObjectID())),
+        Arguments.of(
+            Arrays.asList(dirB, dirD, fileA),
+            Sets.newHashSet(dirB.getObjectID())),
+        Arguments.of(
+            Arrays.asList(dirD, dirC, fileA),
+            Sets.newHashSet(dirD.getObjectID(), dirC.getObjectID())),
+        Arguments.of(
+            Arrays.asList(dirD, fileA),
+            Sets.newHashSet(dirD.getObjectID(), fileA.getObjectID())));
+  }
+
+  private static Map<Long, Long> buildDirATreeParentMap(long bucketObjectId) {
+    return ImmutableMap.<Long, Long>builder()
+        .put(100L, bucketObjectId)
+        .put(101L, 100L)
+        .put(102L, 101L)
+        .put(103L, 101L)
+        .put(104L, 102L)
+        .build();
+  }
+
   @Test
   public void testGetSnapshotDiffReportReportOnlyInProgressIncludesProgressDetails()
       throws IOException {
@@ -1678,4 +1729,27 @@ public class TestSnapshotDiffManager {
         ctx.volumeName, ctx.bucketName, ctx.fromSnapshotName, ctx.toSnapshotName, "", 1000);
     assertEquals(IN_PROGRESS, response.getJobStatus());
   }
+
+  private static OmDirectoryInfo newDeletedDir(long objectId, long parentId) {
+    return OmDirectoryInfo.newBuilder()
+        .setObjectID(objectId)
+        .setParentObjectID(parentId)
+        .setName("dir-" + objectId)
+        .setOwner("test")
+        .setCreationTime(0L)
+        .setModificationTime(0L)
+        .build();
+  }
+
+  private static OmKeyInfo newDeletedFile(long objectId, long parentId) {
+    return new OmKeyInfo.Builder()
+        .setObjectID(objectId)
+        .setParentObjectID(parentId)
+        .setVolumeName(VOLUME_NAME)
+        .setBucketName(BUCKET_NAME)
+        .setKeyName("file-" + objectId)
+        .setReplicationConfig(new ECReplicationConfig(3, 2))
+        .build();
+  }
+
 }
