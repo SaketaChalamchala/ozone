@@ -43,38 +43,38 @@ class TestLatestVersionedKWayMergeIterator {
         Named.of("recreate: tombstone then newer value emits both",
             scenario(
                 expected(kv("k1", 2, 0, null), kv("k1", 3, 1, "v3")),
-                source("A", kv("k1", 1, 1, "v1"), kv("k1", 2, 0, null)),
-                source("B", kv("k1", 3, 1, "v3")))),
+                source(kv("k1", 1, 1, "v1"), kv("k1", 2, 0, null)),
+                source(kv("k1", 3, 1, "v3")))),
         Named.of("delete only: latest tombstone wins",
             scenario(
                 expected(kv("k1", 5, 0, null)),
-                source("A", kv("k1", 1, 1, "v1")),
-                source("B", kv("k1", 5, 0, null)))),
+                source(kv("k1", 1, 1, "v1")),
+                source(kv("k1", 5, 0, null)))),
         Named.of("value only: latest value wins",
             scenario(
                 expected(kv("k1", 5, 1, "v5")),
-                source("A", kv("k1", 1, 1, "v1")),
-                source("B", kv("k1", 5, 1, "v5")))),
+                source(kv("k1", 1, 1, "v1")),
+                source(kv("k1", 5, 1, "v5")))),
         Named.of("three-file worked example",
             scenario(
                 expected(kv("k1", 30, 1, "v30"), kv("k2", 15, 0, null), kv("k2", 25, 1, "v25")),
-                source("A", kv("k1", 10, 1, "v10"), kv("k1", 5, 1, "v5"), kv("k2", 20, 1, "v20")),
-                source("B", kv("k1", 3, 1, "v3"), kv("k1", 15, 1, "v15"), kv("k2", 15, 0, null)),
-                source("C", kv("k1", 1, 1, "v1"), kv("k1", 30, 1, "v30"), kv("k2", 25, 1, "v25")))),
+                source(kv("k1", 10, 1, "v10"), kv("k1", 5, 1, "v5"), kv("k2", 20, 1, "v20")),
+                source(kv("k1", 3, 1, "v3"), kv("k1", 15, 1, "v15"), kv("k2", 15, 0, null)),
+                source(kv("k1", 1, 1, "v1"), kv("k1", 30, 1, "v30"), kv("k2", 25, 1, "v25")))),
         Named.of("multi-key: recreate on k1, delete-only on k2",
             scenario(
                 expected(kv("k1", 3, 0, null), kv("k1", 10, 1, "v10"), kv("k2", 15, 0, null)),
-                source("A", kv("k1", 10, 1, "v10"), kv("k1", 3, 0, null), kv("k2", 10, 1, "v10")),
-                source("B", kv("k2", 15, 0, null)))),
+                source(kv("k1", 10, 1, "v10"), kv("k1", 3, 0, null), kv("k2", 10, 1, "v10")),
+                source(kv("k2", 15, 0, null)))),
         Named.of("duplicate tombstones deduped to highest sequence",
             scenario(
                 expected(kv("k1", 7, 0, null)),
-                source("A", kv("k1", 4, 0, null), kv("k1", 2, 0, null)),
-                source("B", kv("k1", 7, 0, null)))),
+                source(kv("k1", 4, 0, null), kv("k1", 2, 0, null)),
+                source(kv("k1", 7, 0, null)))),
         Named.of("multiple recreate cycles on same key",
             scenario(
                 expected(kv("k1", 4, 0, null), kv("k1", 6, 1, "v6")),
-                source("A",
+                source(
                     kv("k1", 1, 1, "v1"),
                     kv("k1", 2, 0, null),
                     kv("k1", 3, 1, "v3"),
@@ -84,14 +84,14 @@ class TestLatestVersionedKWayMergeIterator {
         Named.of("interleaved keys preserve user-key order",
             scenario(
                 expected(kv("a", 1, 1, "a1"), kv("b", 2, 1, "b1"), kv("c", 3, 1, "c1")),
-                source("A", kv("a", 1, 1, "a1"), kv("c", 3, 1, "c1")),
-                source("B", kv("b", 2, 1, "b1")))),
+                source(kv("a", 1, 1, "a1"), kv("c", 3, 1, "c1")),
+                source(kv("b", 2, 1, "b1")))),
         Named.of("empty source files are ignored",
             scenario(
                 expected(kv("k1", 2, 1, "v2")),
-                source("A", kv("k1", 1, 1, "v1")),
-                source("B"),
-                source("C", kv("k1", 2, 1, "v2"))))
+                source(kv("k1", 1, 1, "v1")),
+                source(),
+                source(kv("k1", 2, 1, "v2"))))
     ).map(Arguments::of);
   }
 
@@ -185,8 +185,8 @@ class TestLatestVersionedKWayMergeIterator {
     return new Expected(Arrays.asList(entries));
   }
 
-  private static Source source(String name, MergedKeyValue... entries) {
-    return new Source(name, Arrays.asList(entries));
+  private static Source source(MergedKeyValue... entries) {
+    return new Source(Arrays.asList(entries));
   }
 
   private static MergedKeyValue kv(String key, long sequence, int type, String value) {
@@ -221,16 +221,10 @@ class TestLatestVersionedKWayMergeIterator {
   }
 
   private static final class Source {
-    private final String name;
     private final List<MergedKeyValue> entries;
 
-    private Source(String name, List<MergedKeyValue> entries) {
-      this.name = name;
+    private Source(List<MergedKeyValue> entries) {
       this.entries = entries;
-    }
-
-    private String getName() {
-      return name;
     }
   }
 
