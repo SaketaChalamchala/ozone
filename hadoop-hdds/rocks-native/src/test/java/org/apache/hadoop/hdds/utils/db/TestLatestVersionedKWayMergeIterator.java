@@ -174,14 +174,11 @@ class TestLatestVersionedKWayMergeIterator {
   }
 
   private static MergeScenario scenario(Expected expected, Source... sources) {
-    String name = Arrays.stream(sources)
-        .map(Source::getName)
-        .collect(Collectors.joining("+"));
     List<List<MergedKeyValue>> sourceKvs = new ArrayList<>();
     for (Source source : sources) {
       sourceKvs.add(source.entries);
     }
-    return new MergeScenario(name, sourceKvs, expected.entries);
+    return new MergeScenario(sourceKvs, expected.entries);
   }
 
   private static Expected expected(MergedKeyValue... entries) {
@@ -205,13 +202,11 @@ class TestLatestVersionedKWayMergeIterator {
   }
 
   private static final class MergeScenario {
-    private final String name;
     private final List<List<MergedKeyValue>> sources;
     private final List<MergedKeyValue> expected;
 
-    private MergeScenario(String name, List<List<MergedKeyValue>> sources,
+    private MergeScenario(List<List<MergedKeyValue>> sources,
         List<MergedKeyValue> expected) {
-      this.name = name;
       this.sources = sources;
       this.expected = expected;
     }
