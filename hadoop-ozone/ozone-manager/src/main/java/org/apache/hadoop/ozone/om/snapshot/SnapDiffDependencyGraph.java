@@ -40,8 +40,10 @@ import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport.DiffType;
  *   <li>Child DELETE before parent DELETE.</li>
  *   <li>Non-delete entry before DELETE of its parent object.</li>
  *   <li>DELETE before CREATE/RENAME that targets the same path.</li>
- *   <li>RENAME before CREATE that targets the same path.</li>
+ *   <li>RENAME before CREATE that reuses the rename source path.</li>
  * </ul>
+ *
+ * <p>A RENAME target path cannot match a CREATE path in the same diff report.
  */
 public final class SnapDiffDependencyGraph {
 
@@ -49,6 +51,10 @@ public final class SnapDiffDependencyGraph {
   private final Map<Integer, Set<Integer>> adjacencyList = new HashMap<>();
   private final Map<Integer, Integer> inDegree = new HashMap<>();
 
+  /**
+   * @throws IllegalStateException if entries contain a RENAME target path that
+   *     matches a CREATE path, or if dependency edges form a cycle
+   */
   public SnapDiffDependencyGraph(List<SnapDiffDependencyEntry> entries) {
     for (SnapDiffDependencyEntry entry : entries) {
       addNode(entry);
@@ -149,6 +155,9 @@ public final class SnapDiffDependencyGraph {
       }
     }
 
+    validateRenameTargetDoesNotMatchCreatePath(renameNodesByTargetPath,
+        createNodesByPath);
+
     for (int nodeId = 0; nodeId < nodes.size(); nodeId++) {
       SnapDiffDependencyEntry entry = nodes.get(nodeId);
       long parentObjectId = entry.getParentObjectId();
@@ -174,8 +183,7 @@ public final class SnapDiffDependencyGraph {
 
     addPathConflictEdges(deleteNodesByPath, createNodesByPath,
         renameNodesByTargetPath);
-    addRenameBeforeCreateEdges(renameNodesBySourcePath, renameNodesByTargetPath,
-        createNodesByPath);
+    addRenameBeforeCreateEdges(renameNodesBySourcePath, createNodesByPath);
   }
 
   private static void addToPathIndex(Map<String, List<Integer>> pathIndex,
@@ -216,7 +224,6 @@ public final class SnapDiffDependencyGraph {
 
   private void addRenameBeforeCreateEdges(
       Map<String, List<Integer>> renameNodesBySourcePath,
-      Map<String, List<Integer>> renameNodesByTargetPath,
       Map<String, List<Integer>> createNodesByPath) {
     for (Map.Entry<String, List<Integer>> createEntry :
         createNodesByPath.entrySet()) {
@@ -225,10 +232,21 @@ public final class SnapDiffDependencyGraph {
           Collections.emptyList())) {
         addEdgesToNodes(renameNodeId, createEntry.getValue());
       }
-      for (int renameNodeId : renameNodesByTargetPath.getOrDefault(path,
-          Collections.emptyList())) {
-        addEdgesToNodes(renameNodeId, createEntry.getValue());
+    }
+  }
+
+  private static void validateRenameTargetDoesNotMatchCreatePath(
+      Map<String, List<Integer>> renameNodesByTargetPath,
+      Map<String, List<Integer>> createNodesByPath) {
+    for (Map.Entry<String, List<Integer>> createEntry :
+        createNodesByPath.entrySet()) {
+      String path = createEntry.getKey();
+      if (!renameNodesByTargetPath.containsKey(path)) {
+        continue;
       }
+      throw new IllegalStateException(String.format(
+          "Invalid snapshot diff report: RENAME target path '%s' cannot match "
+              + "a CREATE path in the same diff", path));
     }
   }
 }

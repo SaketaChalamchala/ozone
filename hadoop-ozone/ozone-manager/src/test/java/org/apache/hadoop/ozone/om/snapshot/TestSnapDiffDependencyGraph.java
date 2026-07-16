@@ -79,16 +79,6 @@ class TestSnapDiffDependencyGraph {
   }
 
   @Test
-  void testRenameBeforeCreateOnSamePath() {
-    List<SnapDiffDependencyEntry> entries = Arrays.asList(
-        entry(3L, 0L, CREATE, "dir/key"),
-        entry(2L, 0L, RENAME, "dir/key", "dir/new-key"));
-
-    List<DiffType> orderedTypes = toDiffTypes(sort(entries));
-    assertEquals(Arrays.asList(RENAME, CREATE), orderedTypes);
-  }
-
-  @Test
   void testRenameBeforeCreateWhenRenameFreesSourcePath() {
     List<SnapDiffDependencyEntry> entries = Arrays.asList(
         entry(3L, 0L, CREATE, "dir/key"),
@@ -96,6 +86,16 @@ class TestSnapDiffDependencyGraph {
 
     List<DiffType> orderedTypes = toDiffTypes(sort(entries));
     assertEquals(Arrays.asList(RENAME, CREATE), orderedTypes);
+  }
+
+  @Test
+  void testRenameTargetPathMatchingCreateThrowsException() {
+    List<SnapDiffDependencyEntry> entries = Arrays.asList(
+        entry(3L, 0L, CREATE, "dir/key"),
+        entry(2L, 0L, RENAME, "old/key", "dir/key"));
+
+    assertThrows(IllegalStateException.class,
+        () -> new SnapDiffDependencyGraph(entries));
   }
 
   @Test
