@@ -2995,11 +2995,15 @@ public final class OzoneManager extends ServiceRuntimeInfoImpl
       metrics.incNumBucketLists();
       List<OmBucketInfo> buckets = bucketManager.listBuckets(volumeName,
           startKey, prefix, maxNumOfBuckets, hasSnapshot);
-      List<OmBucketInfo> enrichedBuckets = new ArrayList<>(buckets.size());
-      for (OmBucketInfo bucket : buckets) {
-        enrichedBuckets.add(enrichLinkBucketInfo(bucket));
+      Map<Pair<String, String>, OmBucketInfo> resolvedSourceCache = new HashMap<>();
+      for (int i = 0; i < buckets.size(); i++) {
+        try {
+          buckets.set(i, enrichLinkBucketInfo(buckets.get(i), resolvedSourceCache));
+        } catch (IOException e) {
+          // Keep the raw bucket entry if source resolution fails.
+        }
       }
-      return enrichedBuckets;
+      return buckets;
     } catch (IOException ex) {
       metrics.incNumBucketListFails();
       auditSuccess = false;
@@ -3021,6 +3025,13 @@ public final class OzoneManager extends ServiceRuntimeInfoImpl
    */
   private OmBucketInfo enrichLinkBucketInfo(OmBucketInfo bucketInfo)
       throws IOException {
+    return enrichLinkBucketInfo(bucketInfo, null);
+  }
+
+  private OmBucketInfo enrichLinkBucketInfo(
+      OmBucketInfo bucketInfo,
+      Map<Pair<String, String>, OmBucketInfo> resolvedSourceCache)
+      throws IOException {
     if (!bucketInfo.isLink()) {
       return bucketInfo;
     }
@@ -3037,25 +3048,30 @@ public final class OzoneManager extends ServiceRuntimeInfoImpl
     if (resolvedBucket.isDangling()) {
       return bucketInfo;
     }
-    OmBucketInfo realBucket =
-        bucketManager.getBucketInfo(
-            resolvedBucket.realVolume(),
-            resolvedBucket.realBucket());
-    // Pass the real bucket metadata in the link bucket info.
-    return bucketInfo.toBuilder()
-        .setDefaultReplicationConfig(
-            realBucket.getDefaultReplicationConfig())
-        .setIsVersionEnabled(realBucket.getIsVersionEnabled())
-        .setStorageType(realBucket.getStorageType())
-        .setQuotaInBytes(realBucket.getQuotaInBytes())
-        .setQuotaInNamespace(realBucket.getQuotaInNamespace())
-        .setUsedBytes(realBucket.getUsedBytes())
-        .setSnapshotUsedBytes(realBucket.getSnapshotUsedBytes())
-        .setSnapshotUsedNamespace(realBucket.getSnapshotUsedNamespace())
-        .setUsedNamespace(realBucket.getUsedNamespace())
-        .addAllMetadata(realBucket.getMetadata())
-        .setBucketLayout(realBucket.getBucketLayout())
-        .build();
+    OmBucketInfo realBucket = getResolvedSourceBucket(resolvedBucket, resolvedSourceCache);
+    return bucketInfo.withOperationalPropertiesFrom(realBucket);
+  }
+
+  private OmBucketInfo getResolvedSourceBucket(
+      ResolvedBucket resolvedBucket,
+      Map<Pair<String, String>, OmBucketInfo> resolvedSourceCache)
+      throws IOException {
+    Pair<String, String> sourceKey = Pair.of(
+        resolvedBucket.realVolume(),
+        resolvedBucket.realBucket());
+    if (resolvedSourceCache != null) {
+      OmBucketInfo cachedSource = resolvedSourceCache.get(sourceKey);
+      if (cachedSource != null) {
+        return cachedSource;
+      }
+    }
+    OmBucketInfo realBucket = bucketManager.getBucketInfo(
+        resolvedBucket.realVolume(),
+        resolvedBucket.realBucket());
+    if (resolvedSourceCache != null) {
+      resolvedSourceCache.put(sourceKey, realBucket);
+    }
+    return realBucket;
   }
 
   /**
