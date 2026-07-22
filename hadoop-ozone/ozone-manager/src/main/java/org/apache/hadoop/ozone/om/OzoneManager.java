@@ -3000,7 +3000,7 @@ public final class OzoneManager extends ServiceRuntimeInfoImpl
         try {
           buckets.set(i, enrichLinkBucketInfo(buckets.get(i), resolvedSourceCache));
         } catch (IOException e) {
-          // Keep the raw bucket entry if source resolution fails.
+          LOG.debug("Failed to enrich listBuckets entry for {}/{}; returning raw entry", volumeName, buckets.get(i).getBucketName(), e);
         }
       }
       return buckets;
