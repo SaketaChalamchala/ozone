@@ -316,7 +316,7 @@ public class TestAuthorizationV4QueryParser {
     headers.put("host", "localhost");
 
     final String stringToSign =
-        StringToSignProducer.createSignatureBase(signatureInfo, "https", "GET",
+        StringToSignProducer.createSignatureBase(signatureInfo, "https",
             headers, queryParams);
 
     MessageDigest md = MessageDigest.getInstance("SHA-256");

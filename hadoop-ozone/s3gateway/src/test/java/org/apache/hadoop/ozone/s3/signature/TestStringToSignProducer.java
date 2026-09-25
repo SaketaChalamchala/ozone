@@ -105,7 +105,6 @@ public class TestStringToSignProducer {
         StringToSignProducer.createSignatureBase(
             signatureInfo,
             "http",
-            "GET",
             headers,
             queryParameters);
 
