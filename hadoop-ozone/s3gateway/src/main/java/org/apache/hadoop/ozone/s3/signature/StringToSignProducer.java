@@ -73,7 +73,6 @@ public final class StringToSignProducer {
       ContainerRequestContext context
   ) throws Exception {
     return createSignatureBase(signatureInfo,
-        context.getUriInfo().getRequestUri().getScheme(),
         context.getMethod(),
         LowerCaseKeyStringMap.fromHeaderMap(context.getHeaders()),
         fromMultiValueToSingleValueMap(
@@ -83,7 +82,6 @@ public final class StringToSignProducer {
   @VisibleForTesting
   public static String createSignatureBase(
       SignatureInfo signatureInfo,
-      String scheme,
       String method,
       LowerCaseKeyStringMap headers,
       Map<String, String> queryParams
@@ -115,7 +113,6 @@ public final class StringToSignProducer {
         .append(credentialScope).append(NEWLINE);
 
     String canonicalRequest = buildCanonicalRequest(
-        scheme,
         method,
         uri,
         signatureInfo.getSignedHeaders(),
@@ -149,7 +146,6 @@ public final class StringToSignProducer {
 
   @VisibleForTesting
   public static String buildCanonicalRequest(
-      String schema,
       String method,
       String uri,
       String signedHeaders,

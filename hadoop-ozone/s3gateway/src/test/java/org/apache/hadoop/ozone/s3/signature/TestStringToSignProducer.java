@@ -130,7 +130,7 @@ public class TestStringToSignProducer {
     queryParams.put("q+1*2~3", "v 4*5~6");
 
     final String canonicalRequest = StringToSignProducer.buildCanonicalRequest(
-        "https", "GET", "/bucket/a+b*c~d/foo bar", "host;x-amz-content-sha256;x-amz-date",
+        "https", "/bucket/a+b*c~d/foo bar", "host;x-amz-content-sha256;x-amz-date",
         headers, queryParams, UNSIGNED_PAYLOAD);
 
     assertEquals(
@@ -157,7 +157,7 @@ public class TestStringToSignProducer {
   @ValueSource(strings = {"[::1]:9878", "[2001:db8::1]:9878", "[::1]"})
   public void testIPv6HostInStringToSign(String host) throws Exception {
     String signedHeaders = "host;x-amz-content-sha256;x-amz-date";
-    String credentialScope = DATE_FORMATTER.format(LocalDate.now())
+    String credentialScope = DATETIME.substring(0, 8)
         + "/us-east-1/s3/aws4_request";
     String authHeader = "AWS4-HMAC-SHA256 Credential=ozone/" + credentialScope
         + ", SignedHeaders=" + signedHeaders

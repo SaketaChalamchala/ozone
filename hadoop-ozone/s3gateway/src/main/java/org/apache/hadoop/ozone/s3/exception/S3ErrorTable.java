@@ -118,7 +118,7 @@ public enum S3ErrorTable {
 
   REQUEST_TIME_TOO_SKEWED(
       "RequestTimeTooSkewed", "The difference between the request time and " +
-          "the server's time is too large.", HTTP_FORBIDDEN),
+      "the server's time is too large.", HTTP_FORBIDDEN),
 
   SIGNATURE_DOES_NOT_MATCH(
       "SignatureDoesNotMatch", "The request signature we calculated does not " +

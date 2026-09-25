@@ -169,6 +169,7 @@ public class TestAuthorizationFilter {
             DATETIME,
             "application/x-www-form-urlencoded; charset=utf-8",
             "/",
+            HTTP_BAD_REQUEST,
             PAYLOAD_TOO_LARGE.getErrorMessage()
         )
     );
