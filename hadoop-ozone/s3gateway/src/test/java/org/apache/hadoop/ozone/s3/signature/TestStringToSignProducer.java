@@ -104,7 +104,7 @@ public class TestStringToSignProducer {
     final String signatureBase =
         StringToSignProducer.createSignatureBase(
             signatureInfo,
-            "http",
+            "GET",
             headers,
             queryParameters);
 
@@ -129,7 +129,7 @@ public class TestStringToSignProducer {
     queryParams.put("q+1*2~3", "v 4*5~6");
 
     final String canonicalRequest = StringToSignProducer.buildCanonicalRequest(
-        "https", "/bucket/a+b*c~d/foo bar", "host;x-amz-content-sha256;x-amz-date",
+        "GET", "/bucket/a+b*c~d/foo bar", "host;x-amz-content-sha256;x-amz-date",
         headers, queryParams, UNSIGNED_PAYLOAD);
 
     assertEquals(
